@@ -1,0 +1,10 @@
+# Ignore 'hidden' folder
+.jxbrowser-data
+.metadata
+
+# Ignore unnecessary files / folder
+RemoteSystemsTempFiles
+
+Versuch*/Debug
+Versuch*/.settings
+Versuch*/.launches

@@ -14,22 +14,25 @@
 #define P2_IN 0x80
 
 enum playback_mode_t {
-  PLAY = 0b0001,
-  PAUSE = 0b0010,
-  FAST_REWIND = 0b0100,
-  FAST_FORWARD = 0b1000
+  PLAY = 0b0010,
+  PAUSE = 0b0100,
+  FAST_REWIND = 0b1000,
+  FAST_FORWARD = 0b0001
 };
 
 void setup(void);
 void loop(void);
 
-__inline void shit_register_clock(void);
-__inline void forward_state(int8_t count);
+__inline void shift_register_clock(void);
+__inline void update_state(int8_t count);
+
 __inline void read_buttons(void);
 __inline void process_button_state(uint8_t state);
-__inline void set_aux_leds(void);
 
-static enum playback_mode_t current_mode = PAUSE;
+__inline void set_leds(uint8_t state);
+__inline void set_aux_leds(uint8_t state);
+
+static enum playback_mode_t current_mode;
 
 static uint8_t timing_counter;
 
@@ -85,9 +88,10 @@ void setup(void) {
   led_state = 0;
   led_aux_state = 0;
   timing_counter = 0;
+  current_mode = PAUSE;
 
   // Timer A0 compare control
-  TA0CCTL0 = 0; // Disable interrupt
+  TA0CCTL0 = CCIE; // Enable interrupt
 
   // Timer A0 compare
   // 1 MHz / 8 => 12,5 kHz
@@ -102,6 +106,10 @@ void setup(void) {
 
   // Enable echo back on serial interface
   serialEchoBack(1);
+
+  // Initialize LEDs
+  set_leds(led_state);
+  set_aux_leds(led_aux_state);
 }
 
 // Runs infinitely
@@ -114,14 +122,15 @@ void loop(void) {
 __interrupt void timer(void) {
   switch (current_mode) {
   case FAST_REWIND:
-    forward_state(-1);
+    update_state(-1);
     break;
   case FAST_FORWARD:
-    forward_state(1);
+    update_state(1);
     break;
   case PLAY:
-    if ((++timing_counter & 0x03) == 0) {
-      forward_state(1);
+    // We want to update every second => division by 8
+    if ((++timing_counter & 0x07) == 0) {
+      update_state(1);
     }
     break;
   case PAUSE:
@@ -131,36 +140,18 @@ __interrupt void timer(void) {
   TA0CCTL0 &= ~CCIFG; // Reset interrupt flag
 }
 
-__inline void forward_state(int8_t count) {
+__inline void update_state(int8_t count) {
   led_state = (led_state + ((count > 0) ? count : (4 + count))) & 0x03;
   led_aux_state = (led_aux_state + ((count > 0) ? count : (3 + count))) % 3;
 
-  /*
-   * Write new state to shift register
-   */
-
-  // Enable shifting for shift register 2
-  P2OUT = (P2OUT & ~0x03) | BIT0;
-
-  uint8_t i;
-  for (i = 4; i > 0; i--) { // Write each LED
-    if (led_state == (4 - i)) {
-      P2OUT |= BIT6; // Set LED to high
-    } else {
-      P2OUT &= ~BIT6; // Set LED to low
-    }
-
-    shit_register_clock();
-  }
-
-  // Disable shift register 2
-  P2OUT &= ~0x03;
+  //Write new state to shift register
+  set_leds(led_state);
 
   // Write auxiliary LEDs
-  set_aux_leds();
+  set_aux_leds(led_aux_state);
 }
 
-__inline void shit_register_clock(void) {
+__inline void shift_register_clock(void) {
   // Creates one clock pulse
   P2OUT |= BIT4; // Set clock to high
   P2OUT &= ~BIT4; // Set clock to low
@@ -209,8 +200,28 @@ __inline void process_button_states(uint8_t state) {
   }
 }
 
-__inline void set_aux_leds(void) {
+__inline void set_aux_leds(uint8_t state) {
+  P1OUT &= ~LEDS | (1 << (state + 3));
+  P1OUT |= (1 << (state + 3));
+}
 
+__inline void set_leds(uint8_t state) {
+  // Enable shifting for shift register 2
+  P2OUT = (P2OUT & ~0x03) | BIT0;
+
+  uint8_t i;
+  for (i = 0; i < 4; i++) { // Write each LED
+    if (state == (3 - i)) {
+      P2OUT |= BIT6; // Set LED to high
+    } else {
+      P2OUT &= ~BIT6; // Set LED to low
+    }
+
+    shift_register_clock();
+  }
+
+  // Disable shift register 2
+  P2OUT &= ~0x03;
 }
 
 __inline void read_buttons(void) {
@@ -218,15 +229,15 @@ __inline void read_buttons(void) {
 
   // Load button data into shift register 1
   P2OUT |= 0x0C;
-  shit_register_clock();
+  shift_register_clock();
 
   // Enable shifting for shift register 1
-  P2OUT &= ~BIT1;
+  P2OUT &= ~BIT3;
 
   uint8_t i;
   for (i = 4; i > 0; i--) {
     if (i != 4)
-      shit_register_clock(); // Read next value
+      shift_register_clock(); // Read next value
 
     button_state |= ((P2IN & BIT7) >> (3 + i));
   }

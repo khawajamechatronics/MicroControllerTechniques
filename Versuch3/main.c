@@ -55,6 +55,11 @@ static uint8_t led_aux_state;
  *   P2.5 /CLR
  *   P2.6 SR (2)
  *   P2.7 QD (1)
+ *
+ * Additional notes:
+ * P1.5 HEATER
+ *   This pin connects the blue LED and the heater on the board.
+ *   The heater has to be deactivated by setting the jumper 'HEATER' to off.
  */
 int main(void) {
   // Initialize with uC tec. settings

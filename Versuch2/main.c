@@ -34,6 +34,11 @@ inline void set_led_red(void);
  *   P1.5 K3 (red)
  *   P1.6 K4 (green)
  *   P1.7 JP3 (yellow)
+ *
+ * Additional notes:
+ * P1.0 HEATER
+ *   This pin connects the blue LED and the heater on the board.
+ *   The heater has to be deactivated by setting the jumper 'HEATER' to off.
  */
 int main(void) {
   // Initialize with uC tec. settings

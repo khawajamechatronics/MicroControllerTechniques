@@ -1,0 +1,9 @@
+Feedback
+========
+
+Problems
+--------
+
+- Oscillator is bullshit (slightly faster than 1 sec)
+- Why has timer A an additional interrupt capability?
+	(Creates interrupt to non-existing ISR -> CPU halt)

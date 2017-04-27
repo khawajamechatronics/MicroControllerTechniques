@@ -38,7 +38,7 @@ int main(void) {
     loop();
 }
 
-// Setup all custom stuff
+// Set up all custom stuff
 void setup(void) {
   // Set initial state
   current_state = 0x00;
@@ -90,7 +90,7 @@ __interrupt void timer(void) {
   uint8_t led_state = current_state & 0b11;
 
   // Apply new LED state
-  P1OUT &= ~LEDS;
+  P1OUT &= (led_state << LED_POFFSET) | ~LEDS;
   P1OUT |= (led_state << LED_POFFSET);
 
   // Increment state

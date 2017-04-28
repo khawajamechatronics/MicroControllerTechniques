@@ -109,9 +109,6 @@ void setup(void) {
       | MC_1 // Up mode
       | TACLR; // Clear timer
 
-  // Enable echo back on serial interface
-  serialEchoBack(1);
-
   // Initialize LEDs
   set_leds(led_state);
   set_aux_leds(led_aux_state);

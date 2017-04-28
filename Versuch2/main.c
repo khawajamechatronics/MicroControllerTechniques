@@ -89,9 +89,6 @@ void setup(void) {
       | ID_3 // Divider of 8
       | MC_1 // Up mode
       | TACLR; // Clear timer
-
-  // Enable echo back on serial interface
-  serialEchoBack(1);
 }
 
 // Runs infinitely

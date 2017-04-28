@@ -64,13 +64,14 @@ void setup(void) {
   adc_current_convert = 0;
 
   // Initialize ADC
+  ADC10CTL1 = 0; // Enable modifying of ADC settings
   ADC10CTL0 = ADC10SHT_2 // 16 × ADC10CLKs
       | ADC10ON // Activate ADC10
       | ADC10IE; // Enable interrupt
   ADC10AE0 = POT | LDR; // Enable channels
-  ADC10CTL1 = ADC_CHANNEL[adc_current_convert] // Select current channel
-      | ENC // Enable conversion
-      | ADC10SC; // Start conversion
+
+  // Start with first conversion
+  adc_convert(0);
 }
 
 // Runs infinitely
@@ -78,30 +79,28 @@ void loop(void) { }
 
 #pragma vector=ADC10_VECTOR
 __interrupt void adc_finished(void) {
-  uint8_t finished = adc_current_convert;
-
   // Save result into storage
+  uint8_t finished = adc_current_convert;
   uint16_t adc_result = ADC10MEM;
 
-  // Choose next value
-  if (++adc_current_convert >= ADC_VALUES) {
-    adc_current_convert = 0;
-  }
+  // Process the read analog value
+  process_analog_value(finished, adc_result);
 
-  // Reset interrupt and enable flag
-  ADC10CTL0 &= ~ADC10IFG & ~ENC;
-
-  // Select next channel
-  ADC10CTL1 = (ADC10CTL1 & 0xf000) | ADC_CHANNEL[adc_current_convert];
-
-  // Start conversion
-  ADC10CTL0 |= ADC10SC | ENC;
-
-  update_analog_value(finished, adc_result);
+  // Choose next sample and start ADC
+  uint8_t next = finished + 1;
+  adc_convert((next >= ADC_VALUES) ? 0 : next);
 }
 
-__inline void update_analog_value(uint8_t index, uint16_t value) {
-
+__inline void process_analog_value(uint8_t index, uint16_t value) {
+  switch (index) {
+  case 0: // Red was measured
+  case 1: // Green was measured
+  case 2: // Blue was measured
+    break;
+  case 3: // Potentiometer was measured
+    set_shift_register_leds((value >> 6) * 3 / 4);
+    break;
+  }
 }
 
 __inline void shift_register_clock(void) {
@@ -110,7 +109,7 @@ __inline void shift_register_clock(void) {
   P2OUT &= ~BIT4; // Set clock to low
 }
 
-__inline void set_leds(uint8_t state) {
+__inline void set_shift_register_leds(uint8_t state) {
   // Enable shifting for shift register 2
   P2OUT = (P2OUT & ~0x03) | BIT0;
 
@@ -127,4 +126,28 @@ __inline void set_leds(uint8_t state) {
 
   // Disable shift register 2
   P2OUT &= ~0x03;
+}
+
+__inline void adc_convert(uint8_t index) {
+  // Reset interrupt and enable flag
+  ADC10CTL0 &= ~(ADC10IFG | ENC);
+
+  // Set new index
+  adc_current_convert = index;
+
+  // Select next channel
+  ADC10CTL1 = (ADC10CTL1 & 0x0FFF) | ADC_CHANNEL[adc_current_convert];
+
+  // Select current LED
+  P3OUT &= ~LEDS;
+  P3OUT |= ADC_LEDS[adc_current_convert];
+
+  // Let LDR value settle
+  if (adc_current_convert < 3) {
+    __delay_cycles(2000);
+  }
+
+  // Start ADC conversion
+  ADC10CTL0 |= ENC // Enable conversion
+      | ADC10SC; // Start conversion
 }

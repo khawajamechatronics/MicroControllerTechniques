@@ -14,15 +14,7 @@
 
 #define COLORS 5
 
-enum Color {
-  NONE = 0,
-  WHITE = 1,
-  BLACK = 2,
-  RED = 3,
-  GREEN = 4,
-  BLUE = 5
-};
-
+// Color names which are printed out to the console
 static const char* COLOR_NAMES[COLORS + 1] = {
   "none",
   "white",
@@ -32,16 +24,20 @@ static const char* COLOR_NAMES[COLORS + 1] = {
   "blue"
 };
 
+// Color components averaged from 3 measurements per color
 static const uint16_t COLOR_COMPONENTS[COLORS][3] = {
-  { 0, 0, 0}, // White
-  { 0, 0, 0}, // Black
-  { 0, 0, 0}, // Red
-  { 0, 0, 0}, // Green
-  { 0, 0, 0} // Blue
+  { 200, 240, 240 }, // White
+  { 80, 100, 115 }, // Black
+  { 180, 140, 130 }, // Red
+  { 90, 160, 125 }, // Green
+  { 90, 130, 180 } // Blue
 };
 
-static const uint16_t COLOR_DIFF_THRESHOLD = 512;
-static const uint16_t COLOR_DETECT_THRESHOLD = 512;
+// Maximum squared distance between color and measured color
+static const uint16_t COLOR_DIFF_THRESHOLD = 10;
+
+// Number of measurement points to switch to new color
+static const uint16_t COLOR_DETECT_THRESHOLD = 3;
 
 static const uint16_t ADC_CHANNEL[ADC_VALUES] = {
   INCH_4, INCH_4, INCH_4, INCH_5
@@ -57,8 +53,8 @@ void loop(void);
 __inline void process_analog_value(uint8_t index, uint16_t value);
 __inline void adc_convert(uint8_t index);
 
-__inline void identify_color(void);
-__inline void report_new_color(uint8_t index);
+void identify_color(void);
+void report_new_color(uint8_t index);
 
 __inline void set_shift_register_leds(uint8_t state);
 __inline void shift_register_clock(void);

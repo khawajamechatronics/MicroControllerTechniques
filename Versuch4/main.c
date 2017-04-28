@@ -73,8 +73,8 @@ void setup(void) {
   ADC10AE0 = POT | LDR; // Enable channels
 
   // Initialize color recognition
-  current_color = NONE;
-  new_color = NONE;
+  current_color = 0; // (NONE)
+  new_color = 0; // (NONE)
   new_color_time = 0;
 
   // Start with first conversion
@@ -111,7 +111,23 @@ __inline void process_analog_value(uint8_t index, uint16_t value) {
     }
     break;
   case 3: // Potentiometer was measured
-    set_shift_register_leds((value * 3) >> (6 + 2));
+    /*
+     * Explanation:
+     *   We want our 10 bit value on a 5 bit range => shift by 5
+     *   (value >> 5)
+     *
+     *   We want only 3/4 of this value since the
+     *   highest led occupies 1,5 ranges
+     *   (value * 3 / 4) >> 5
+     *   = ((value << 2 - value) / 4) >> 5
+     *   = ((value << 2 - value) >> 2) >> 5
+     *   = ((value << 2 - value) >> (2 + 5)
+     *
+     *   We want that no LED is active when on lowest bucket
+     *   (((value << 2) - value) >> (2 + 5)) >> 1
+     *   = ((value << 2) - value) >> 8
+     */
+    set_shift_register_leds(((value << 2) - value) >> 8);
     break;
   }
 }
@@ -149,15 +165,15 @@ __inline void adc_convert(uint8_t index) {
   adc_current_convert = index;
 
   // Select next channel
-  ADC10CTL1 = (ADC10CTL1 & 0x0FFF) | ADC_CHANNEL[adc_current_convert];
+  ADC10CTL1 = (ADC10CTL1 & 0x0FFF) | ADC_CHANNEL[index];
 
   // Select current LED
   P3OUT &= ~LEDS;
-  P3OUT |= ADC_LEDS[adc_current_convert];
+  P3OUT |= ADC_LEDS[index];
 
   // Let LDR value settle
   if (adc_current_convert < 3) {
-    __delay_cycles(2000);
+    __delay_cycles(100000); // Wait 100 ms => ~3 measurements/s
   }
 
   // Start ADC conversion
@@ -165,27 +181,65 @@ __inline void adc_convert(uint8_t index) {
       | ADC10SC; // Start conversion
 }
 
-__inline void identify_color(void) {
-  uint8_t color;
-  for (color = COLORS; color > 0; color--) {
+void identify_color(void) {
+  /*serialPrint("Current analyzed color: ");
+  serialPrintInt(adc_color_components[0]);
+  serialPrint(", ");
+  serialPrintInt(adc_color_components[1]);
+  serialPrint(", ");
+  serialPrintInt(adc_color_components[2]);
+  serialPrintln("");*/
+
+  // Save color candidates
+  int8_t candidates_size = 0;
+  uint16_t canddidates[COLORS][2];
+
+  int8_t color;
+  for (color = COLORS - 1; color >= 0; --color) {
     // Squared difference to the tested color
-    uint16_t diff = 0;
+    // uint16_t diff = 0;
 
     // Calculate the difference to comparing color
-    uint8_t i;
-    for (i = 3; i > 0; i--) {
+    int8_t i;
+    for (i = 2; i >= 0; i--) {
       // Calculate difference of color component
       int16_t d = (int16_t) adc_color_components[i]
           - (int16_t) COLOR_COMPONENTS[color][i];
       d *= d; // Square the difference
 
+      if (d <= (int16_t) COLOR_DIFF_THRESHOLD) {
+        break;
+      }
+
+      if (i == 0) {
+        canddidates[candidates_size][0] = (uint16_t) color;
+        canddidates[candidates_size][1] = (uint16_t) d;
+        candidates_size++;
+      }
       // Sum the squared difference
-      diff += (uint16_t) d;
+      //diff += (uint16_t) d;
     }
 
     // Check if difference is smaller than a selected threshold
-    if (diff <= COLOR_DIFF_THRESHOLD) {
-      break;
+    // This preselects our candidates
+    /*if ((int16_t) diff <= (int16_t) COLOR_DIFF_THRESHOLD) {
+      canddidates[candidates_size][0] = color;
+      canddidates[candidates_size][1] = diff;
+      candidates_size++;
+    }*/
+  }
+
+  if (candidates_size == 0) {
+    color = 0;
+  } else {
+    // Select best candidate
+    uint16_t min_value = 0xFFFF;
+    for (; candidates_size >= 0; candidates_size--) {
+      // Is the next color a better approximation?
+      if (canddidates[candidates_size][1] < min_value) {
+        min_value = canddidates[candidates_size][1];
+        color = canddidates[candidates_size][0];
+      }
     }
   }
 
@@ -204,7 +258,7 @@ __inline void identify_color(void) {
   }
 }
 
-__inline void report_new_color(uint8_t index) {
+void report_new_color(uint8_t index) {
   serialPrint("Found new color: ");
   serialPrintln(COLOR_NAMES[index]);
 }

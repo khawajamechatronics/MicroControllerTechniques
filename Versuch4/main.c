@@ -8,6 +8,11 @@
 #include "main.h"
 
 static uint16_t adc_current_convert;
+static uint16_t adc_color_components[3];
+
+static uint8_t current_color;
+static uint8_t new_color;
+static uint16_t new_color_time;
 
 /*
  * MSP430G2553
@@ -60,15 +65,17 @@ void setup(void) {
   P1DIR &= ~ANALOG_IN; // Set pins as input
   P2REN &= ~ANALOG_IN; // No pull-up / -down
 
-  // Initialize first conversion
-  adc_current_convert = 0;
-
   // Initialize ADC
   ADC10CTL1 = 0; // Enable modifying of ADC settings
   ADC10CTL0 = ADC10SHT_2 // 16 × ADC10CLKs
       | ADC10ON // Activate ADC10
       | ADC10IE; // Enable interrupt
   ADC10AE0 = POT | LDR; // Enable channels
+
+  // Initialize color recognition
+  current_color = NONE;
+  new_color = NONE;
+  new_color_time = 0;
 
   // Start with first conversion
   adc_convert(0);
@@ -96,9 +103,15 @@ __inline void process_analog_value(uint8_t index, uint16_t value) {
   case 0: // Red was measured
   case 1: // Green was measured
   case 2: // Blue was measured
+    adc_color_components[index] = value;
+
+    // Update current color
+    if (index == 2) {
+      identify_color();
+    }
     break;
   case 3: // Potentiometer was measured
-    set_shift_register_leds((value >> 6) * 3 / 4);
+    set_shift_register_leds((value * 3) >> (6 + 2));
     break;
   }
 }
@@ -150,4 +163,48 @@ __inline void adc_convert(uint8_t index) {
   // Start ADC conversion
   ADC10CTL0 |= ENC // Enable conversion
       | ADC10SC; // Start conversion
+}
+
+__inline void identify_color(void) {
+  uint8_t color;
+  for (color = COLORS; color > 0; color--) {
+    // Squared difference to the tested color
+    uint16_t diff = 0;
+
+    // Calculate the difference to comparing color
+    uint8_t i;
+    for (i = 3; i > 0; i--) {
+      // Calculate difference of color component
+      int16_t d = (int16_t) adc_color_components[i]
+          - (int16_t) COLOR_COMPONENTS[color][i];
+      d *= d; // Square the difference
+
+      // Sum the squared difference
+      diff += (uint16_t) d;
+    }
+
+    // Check if difference is smaller than a selected threshold
+    if (diff <= COLOR_DIFF_THRESHOLD) {
+      break;
+    }
+  }
+
+  if (color != current_color) {
+    if (color != new_color) {
+      // Color was detected right now
+      new_color = color;
+      new_color_time = 0;
+    } else {
+      // Color was already there before
+      if (++new_color_time > COLOR_DETECT_THRESHOLD) {
+        current_color = new_color; // Replace existing color
+        report_new_color(new_color); // Report new color to user
+      }
+    }
+  }
+}
+
+__inline void report_new_color(uint8_t index) {
+  serialPrint("Found new color: ");
+  serialPrintln(COLOR_NAMES[index]);
 }

@@ -14,7 +14,9 @@
 __inline void setup(void);
 __inline void loop(void);
 
-void finished(void);
+void melody_finished(void);
+
+static uint8_t current_melody;
 
 /*
  * MSP430G2553
@@ -41,12 +43,38 @@ __inline void setup() {
   // Initialize player
   play_init();
 
-  // Play a test melody
-  play_melody(&melody1, &finished);
+  // Play first melody
+  melody_play(1);
 }
 
 __inline void loop() { }
 
-void finished(void) {
+void melody_play(uint8_t melody) {
+  // Set current melody
+  current_melody = melody;
 
+  switch (melody) {
+  case 1:
+    play_melody(&melody1, &melody_finished);
+    break;
+  case 2:
+    play_melody(&melody2, &melody_finished);
+    break;
+  }
+}
+
+void melody_finished(void) {
+  switch (current_melody) {
+  case 1:
+    // Wait one second and play melody 2
+    wait(16, &melody2_play);
+    break;
+  case 2:
+    // Do nothing
+    break;
+  }
+}
+
+void melody2_play(void) {
+  melody_play(2);
 }

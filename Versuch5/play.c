@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "play.h"
+#include "wait.h"
 
 void resume_melody(void);
 
@@ -11,7 +12,6 @@ static void (*note_end_callback)(void);
 static void (*melody_end_callback)(void);
 
 static uint16_t current_note;
-static uint16_t current_note_length;
 static const melody_t *current_melody;
 
 void play_melody(const melody_t *melody, void (*callback)(void)) {
@@ -21,6 +21,11 @@ void play_melody(const melody_t *melody, void (*callback)(void)) {
   // Reset melody
   current_note = 0;
   current_melody = melody;
+
+  // Initialize Timer A0
+  TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
+      | ID_0 // Divider of 1
+      | MC_0; // Disabled
 
   if (melody->length > 0) {
     play_note(&melody->notes[0], &resume_melody);
@@ -51,10 +56,7 @@ void play_note(const tone_t *tone, void (*callback)(void)) {
   TA0CCTL2 = OUTMOD_3; // Output mode 3 (Set / Reset)
   TA0CTL |= MC_1; // Count up
 
-  // Initialize with new duration
-  TA1R = 0; // Reset timer to 0
-  TA1CTL |= MC_1; // Count up
-  TA1CCTL0 |= CCIE; // Enable interrupt
+  wait(tone->length, &note_end_callback);
 }
 
 void play_init(void) {
@@ -63,35 +65,4 @@ void play_init(void) {
   P3SEL2 &= ~BUZZER;
   P3DIR |= BUZZER; // Set as output
   P3REN &= ~BUZZER; // No pull-up / -down
-
-  // Initialize Timer A0
-  TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
-      | ID_0 // Divider of 1
-      | MC_0; // Disabled
-
-  // Initialize Timer A1
-  TA1CTL = TASSEL_2 // SMCLK as source (1 MHz)
-      | ID_3 // Divider of 8
-      | MC_0; // Disabled
-
-  // 1 MHz / 8 => 125 kHz
-  // 125 kHz / 16Hz => 7812
-  TA1CCR0 = 0x1E84; // Initialize frequency of 16 Hz
-}
-
-#pragma vector=TIMER1_A0_VECTOR
-__interrupt void timer(void) {
-  if (current_note_length > 0) {
-    current_note_length--;
-    TA1CCTL0 &= ~CCIFG; // Reset interrupt
-    return; // Continue note
-  }
-
-  // Stop note
-  TA0CTL &= ~MC_1; // Disable Timer A0
-  TA0CTL &= ~MC_1; // Disable Timer A1
-  TA1CCTL0 &= ~(CCIFG | CCIE); // Disable Timer A1 interrupt
-
-  // Call callback function
-  note_end_callback();
 }

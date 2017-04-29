@@ -11,8 +11,14 @@
 // #define MELODY_NAME melody2
 // #include "melodies/melody2.inc"
 
+#define BUTTON_PLAY BIT3
+#define BUTTON_PAUSE BIT4
+#define BUTTONS (BUTTON_PLAY | BUTTON_PAUSE)
+
 __inline void setup(void);
 __inline void loop(void);
+
+__inline void pause_resume(void);
 
 void melody_finished(void);
 
@@ -43,11 +49,23 @@ __inline void setup() {
   // Initialize player
   play_init();
 
+  // Initialize buttons
+  P1SEL &= ~BUTTONS; // Set as IO port
+  P1SEL2 &= ~BUTTONS;
+  P1DIR &= ~BUTTONS; // Set as input
+  P1REN |= BUTTONS; // Enable pull-up /-down resistors
+  P1OUT |= BUTTONS; // Pull-up
+  P1IES |= BUTTONS; // Interrupt on high-to-low transition
+  P1IFG &= ~BUTTONS; // Reset interrupt flag
+  P1IE |= BUTTONS; // Enable interrupt
+
   // Play first melody
   melody_play(1);
 }
 
-__inline void loop() { }
+__inline void loop() {
+  pause_resume();
+}
 
 void melody_play(uint8_t melody) {
   // Set current melody
@@ -77,4 +95,44 @@ void melody_finished(void) {
 
 void melody2_play(void) {
   melody_play(2);
+}
+
+__inline void pause_resume(void) {
+  uint8_t t1_state = TA0CTL;
+  uint8_t t2_state = TA1CTL;
+
+  TA0CTL &= ~MC_1; // Deactivate timer
+  TA1CTL &= ~MC_1; // Deactivate timer
+
+  // Wait for pause button to get released
+  while (!(P1IN & BUTTON_PAUSE));
+
+  // Wait for the next press of the pause button
+  while (P1IN & BUTTON_PAUSE);
+
+  // Wait for pause button to get released
+  while (!(P1IN & BUTTON_PAUSE));
+
+  // Resume state
+  TA0CTL = t1_state;
+  TA1CTL = t2_state;
+}
+
+#pragma vector=PORT1_VECTOR
+__interrupt void button_pressed(void) {
+  uint8_t flags = P1IFG; // Save interrupt flags
+
+  P1IE &= ~BUTTONS; // Disable interrupt
+  P1IFG &= ~BUTTONS; // Reset interrupt flag
+
+  // Handle button press
+  if (flags & BUTTON_PAUSE) {
+    pause_resume();
+
+    // Re-enable interrupt
+    P1IE |= BUTTONS;
+    return;
+  } else if (flags & BUTTON_PLAY) {
+    // TODO
+  }
 }

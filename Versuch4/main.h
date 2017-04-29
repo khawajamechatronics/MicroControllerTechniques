@@ -52,8 +52,8 @@ static const uint8_t ADC_LEDS[ADC_VALUES] = {
   0, LEDR, LEDG, LEDB
 };
 
-void setup(void);
-void loop(void);
+__inline void setup(void);
+__inline void loop(void);
 
 __inline void process_analog_value(uint8_t index, uint16_t value);
 __inline void adc_convert(uint8_t index);

@@ -46,7 +46,7 @@ int main(void) {
 }
 
 // Set up all custom stuff
-void setup(void) {
+__inline void setup(void) {
   // Initialize P3.0 to P3.2 as output port
   P3SEL &= ~LEDS; // Set as IO port
   P3SEL2 &= ~LEDS; // Set as IO port
@@ -104,7 +104,7 @@ void setup(void) {
 }
 
 // Runs infinitely
-void loop(void) { }
+__inline void loop(void) { }
 
 #pragma vector=ADC10_VECTOR
 __interrupt void adc_finished(void) {

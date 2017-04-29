@@ -10,8 +10,8 @@
 #define LEDB (1 << 5)
 #define LEDS (LEDR | LEDB)
 
-void setup(void);
-void loop(void);
+__inline void setup(void);
+__inline void loop(void);
 
 // Store LED status
 static uint8_t current_state;
@@ -39,7 +39,7 @@ int main(void) {
 }
 
 // Set up all custom stuff
-void setup(void) {
+__inline void setup(void) {
   // Set initial state
   current_state = 0x00;
 
@@ -72,7 +72,7 @@ void setup(void) {
 }
 
 // Runs infinitely
-void loop(void) {
+__inline void loop(void) {
   if (serialRead() != -1) {
     // Clear serial buffer
     serialFlush();

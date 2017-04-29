@@ -17,8 +17,8 @@
 
 #define PORTS (LEDS | BUTTONS)
 
-void setup(void);
-void loop(void);
+__inline void setup(void);
+__inline void loop(void);
 
 inline void set_led_green(void);
 inline void set_led_blue(void);
@@ -51,7 +51,7 @@ int main(void) {
 }
 
 // Set up all custom stuff
-void setup(void) {
+__inline void setup(void) {
   // Initialize P1.3 to P1.6 as I/O port
   P1SEL &= ~PORTS;
   P1SEL2 &= ~PORTS;
@@ -94,7 +94,7 @@ void setup(void) {
 }
 
 // Runs infinitely
-void loop(void) {
+__inline void loop(void) {
   set_led_green();
   set_led_blue();
   // set_led_red();

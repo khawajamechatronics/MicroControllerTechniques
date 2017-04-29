@@ -5,8 +5,16 @@
 
 #include "play.h"
 
+#define MELODY_NAME melody1
+#include "melodies/melody1.inc"
+
+// #define MELODY_NAME melody2
+// #include "melodies/melody2.inc"
+
 __inline void setup(void);
 __inline void loop(void);
+
+void finished(void);
 
 /*
  * MSP430G2553
@@ -32,8 +40,13 @@ int main(void) {
 __inline void setup() {
   // Initialize player
   play_init();
+
+  // Play a test melody
+  play_melody(&melody1, &finished);
 }
 
-__inline void loop() {
+__inline void loop() { }
+
+void finished(void) {
 
 }

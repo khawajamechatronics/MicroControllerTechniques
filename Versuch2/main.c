@@ -76,19 +76,21 @@ void setup(void) {
   P1IFG &= ~BUTTON5;
   P1IE |= BUTTON5;
 
-  // Timer A0 compare control
-  TA0CCTL0 = 0; // Disable interrupt
+  // Reset Timer A0
+  TA0CTL = TACLR; // Clear timer
 
   // Timer A0 compare
-  // 1 MHz / 8 => 12,5 kHz
-  // 12,5 kHz / 4 Hz => 31250
+  // 1 MHz / 8 => 125 kHz
+  // 125 kHz / 4 Hz => 31250
   TA0CCR0 = 0x7A12;
+
+  // Timer A0 compare control
+  TA0CCTL0 = 0; // Disable interrupt
 
   // Timer A0 control
   TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
       | ID_3 // Divider of 8
-      | MC_1 // Up mode
-      | TACLR; // Clear timer
+      | MC_1; // Up mode
 }
 
 // Runs infinitely

@@ -95,19 +95,21 @@ void setup(void) {
   timing_counter = 0;
   current_mode = PAUSE;
 
-  // Timer A0 compare control
-  TA0CCTL0 = CCIE; // Enable interrupt
+  // Reset Timer A0
+  TA0CTL = TACLR; // Clear timer
 
   // Timer A0 compare
-  // 1 MHz / 8 => 12,5 kHz
-  // 12,5 kHz / 8 Hz => 15625
+  // 1 MHz / 8 => 125 kHz
+  // 125 kHz / 8 Hz => 15625
   TA0CCR0 = 0x3D09;
+
+  // Timer A0 compare control
+  TA0CCTL0 = CCIE; // Enable interrupt
 
   // Timer A0 control
   TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
       | ID_3 // Divider of 8
-      | MC_1 // Up mode
-      | TACLR; // Clear timer
+      | MC_1; // Up mode
 
   // Initialize LEDs
   set_leds(led_state);

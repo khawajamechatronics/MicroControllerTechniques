@@ -6,8 +6,13 @@
 #include <templateEMP.h>
 
 #include "main.h"
+#include "shift_register.h"
 
 static uint16_t adc_current_convert;
+
+static uint16_t adc_scheduled_convert;
+static uint16_t adc_scheduled_convert_start;
+
 static uint16_t adc_color_components[3];
 
 static uint8_t current_color;
@@ -49,15 +54,8 @@ void setup(void) {
   P3REN &= ~LEDS; // No pull-up / -down
   P3OUT &= ~LEDS; // Set to low
 
-  // Initialize port P2
-  P2SEL &= 0; // Set as IO port
-  P2SEL2 &= 0; // Set as IO port
-  P2DIR = P2_OUT; // Set some pins as output
-  P2REN = 0; // No pull-up / -down
-  P2OUT = 0; // Reset shift register
-
-  // Enable shift register
-  P2OUT = BIT5;
+  // Initialize the shift register
+  shift_register_init();
 
   // Initialize port P1 as analog input
   P1SEL &= ~ANALOG_IN; // Set as IO port
@@ -72,10 +70,34 @@ void setup(void) {
       | ADC10IE; // Enable interrupt
   ADC10AE0 = POT | LDR; // Enable channels
 
+  // Reset Timer A0
+  TA0CTL = TACLR; // Clear timer
+
+  // Timer A0 compare
+  // 1 MHz / 8 => 125 kHz
+  // 125 kHz / 10 Hz => 12500
+  // TA0CCR0 = 0x30D4;
+  TA0CCR0 = 0x30D4;
+
+  // Timer A0 compare control
+  TA0CCTL0 = CCIE; // Enable interrupt
+
+  // Timer A0 control
+  TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
+      | ID_3 // Divider of 8
+      | MC_0; // Disabled
+
   // Initialize color recognition
   current_color = 0; // (NONE)
   new_color = 0; // (NONE)
   new_color_time = 0;
+
+  // Initialize with empty schedule
+  adc_scheduled_convert = 0; // (NONE)
+  adc_scheduled_convert_start = 0x00;
+
+  // Schedule first color conversion
+  adc_schedule_convert(1);
 
   // Start with first conversion
   adc_convert(0);
@@ -93,24 +115,60 @@ __interrupt void adc_finished(void) {
   // Process the read analog value
   process_analog_value(finished, adc_result);
 
-  // Choose next sample and start ADC
-  uint8_t next = finished + 1;
-  adc_convert((next >= ADC_VALUES) ? 0 : next);
+  // Do we need to start one of the r/g/b values?
+  if (adc_scheduled_convert_start != 0x00) {
+    adc_scheduled_convert_start = 0x00;
+    adc_convert(adc_scheduled_convert);
+  } else {
+    // Choose next sample and start ADC
+    adc_convert(0);
+  }
 }
 
+/**
+ * We want our LEDs to stay on for some time before the analog value
+ * is read. This is done via Timer A0 and a start flag which is set by
+ * this ISR.
+ */
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void timer(void) {
+  // LED was on for some time now
+  // => we start the ADC conversion
+  adc_scheduled_convert_start = 0x01;
+
+  TA0CTL &= ~MC_1; // Deactivate timer
+  TA0CCTL0 &= ~CCIFG; // Reset interrupt flag
+}
+
+/**
+ * Callback function to process the converted analog data.
+ * The index denotes the channel / source of which the value
+ * was read.
+ * Index:
+ *   0: Potentiometer
+ *   1: Red value of LDR
+ *   2: Green value of LDR
+ *   3: Blue value of LDR
+ *
+ * @param index The index of the read value
+ * @param value The analog value read
+ */
 __inline void process_analog_value(uint8_t index, uint16_t value) {
   switch (index) {
-  case 0: // Red was measured
-  case 1: // Green was measured
-  case 2: // Blue was measured
+  case 1: // Red was measured
+  case 2: // Green was measured
+  case 3: // Blue was measured
     adc_color_components[index] = value;
 
+    // Schedule next conversion
+    adc_schedule_convert((index == 3) ? 1 : (index + 1));
+
     // Update current color
-    if (index == 2) {
+    /*if (index == 2) {
       identify_color();
-    }
+    }*/
     break;
-  case 3: // Potentiometer was measured
+  case 0: // Potentiometer was measured
     /*
      * Explanation:
      *   We want our 10 bit value on a 5 bit range => shift by 5
@@ -132,31 +190,6 @@ __inline void process_analog_value(uint8_t index, uint16_t value) {
   }
 }
 
-__inline void shift_register_clock(void) {
-  // Creates one clock pulse
-  P2OUT |= BIT4; // Set clock to high
-  P2OUT &= ~BIT4; // Set clock to low
-}
-
-__inline void set_shift_register_leds(uint8_t state) {
-  // Enable shifting for shift register 2
-  P2OUT = (P2OUT & ~0x03) | BIT0;
-
-  uint8_t i;
-  for (i = 0; i < 4; i++) { // Write each LED
-    if (state >> i) {
-      P2OUT |= BIT6; // Set LED to high
-    } else {
-      P2OUT &= ~BIT6; // Set LED to low
-    }
-
-    shift_register_clock();
-  }
-
-  // Disable shift register 2
-  P2OUT &= ~0x03;
-}
-
 __inline void adc_convert(uint8_t index) {
   // Reset interrupt and enable flag
   ADC10CTL0 &= ~(ADC10IFG | ENC);
@@ -167,28 +200,34 @@ __inline void adc_convert(uint8_t index) {
   // Select next channel
   ADC10CTL1 = (ADC10CTL1 & 0x0FFF) | ADC_CHANNEL[index];
 
-  // Select current LED
-  P3OUT &= ~LEDS;
-  P3OUT |= ADC_LEDS[index];
-
-  // Let LDR value settle
-  if (adc_current_convert < 3) {
-    __delay_cycles(100000); // Wait 100 ms => ~3 measurements/s
-  }
-
   // Start ADC conversion
   ADC10CTL0 |= ENC // Enable conversion
       | ADC10SC; // Start conversion
 }
 
+__inline void adc_schedule_convert(uint8_t index) {
+  // Reset start bit
+  adc_scheduled_convert_start = 0x00;
+
+  // Save current scheduled index
+  adc_scheduled_convert = index;
+
+  // Select current LED
+  P3OUT &= ~LEDS;
+  P3OUT |= ADC_LEDS[index];
+
+  // Start timer
+  TA0CTL |= MC_1;
+}
+
 void identify_color(void) {
-  /*serialPrint("Current analyzed color: ");
+  serialPrint("Current analyzed color: ");
   serialPrintInt(adc_color_components[0]);
   serialPrint(", ");
   serialPrintInt(adc_color_components[1]);
   serialPrint(", ");
   serialPrintInt(adc_color_components[2]);
-  serialPrintln("");*/
+  serialPrintln("");
 
   // Save color candidates
   int8_t candidates_size = 0;
@@ -205,7 +244,7 @@ void identify_color(void) {
       // Calculate difference of color component
       int16_t d = (int16_t) adc_color_components[i]
           - (int16_t) COLOR_COMPONENTS[color][i];
-      d *= d; // Square the difference
+      // d *= d; // Square the difference
 
       if (d <= (int16_t) COLOR_DIFF_THRESHOLD) {
         break;

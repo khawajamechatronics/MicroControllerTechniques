@@ -6,7 +6,7 @@
 #include <msp430.h>
 #include <stdint.h>
 
-#define BUZZER BIT6
+#define BUZZER BIT0
 
 typedef struct {
   const uint16_t tone;

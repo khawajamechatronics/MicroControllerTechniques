@@ -64,9 +64,9 @@ void play_note(const tone_t *tone, void (*callback)(void)) {
 }
 
 void play_init(void) {
-  // Initialize P3.6 as PWM output port
-  P3SEL |= BUZZER; // Set as Timer0_A, compare: Out2 output
+  // Initialize P3.0 as PWM output
+  P3SEL |= BUZZER; // Set as PWM port
   P3SEL2 &= ~BUZZER;
-  P3DIR |= BUZZER; // Set as output
-  P3REN &= ~BUZZER; // No pull-up / -down
+  P3REN &= ~BUZZER; // Disable pull-up / -down resistors
+  P3DIR |= BUZZER; // Set as Timer A0 TA2 output (S. 57 MSP430G2553)
 }

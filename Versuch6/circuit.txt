@@ -1,0 +1,12 @@
+Circuit
+=======
+
+The relay switches between input- and output-mode.
+With this we can staticly initialize our ports which removes the runtime
+overhead of mode switching (10 instructions -> 1 instruction).
+Additionally to this we use an external low pass filter, a buffer
+and a comparator which benefits the processing since we directly get a clean
+digital signal from our comparator.
+The reference level to trigger an interrupt can be set via P1.
+Since we can now route the input of the comparator to an interrupt enabled pin
+we can save processing time since we can use interrupts instead of polling.

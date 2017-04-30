@@ -8,7 +8,6 @@
 
 void resume_melody(void);
 
-static void (*note_end_callback)(void);
 static void (*melody_end_callback)(void);
 
 static uint16_t current_note;
@@ -34,21 +33,26 @@ void play_melody(const melody_t *melody, void (*callback)(void)) {
 
 void resume_melody(void) {
   if (++current_note < current_melody->length) {
-    // Play next note
-    play_note(&current_melody->notes[current_note], &resume_melody);
+    const tone_t *next_note = &current_melody->notes[current_note];
+
+    // Pause instead of note?
+    if (next_note->tone == 0) {
+      // Just wait the respective time
+      wait(next_note->length, &resume_melody);
+    } else {
+      // Play next note
+      play_note(next_note, &resume_melody);
+    }
   } else {
+    // Disable Timer A0
+    TA0CTL &= MC_1;
+
     // Signal end of melody
     melody_end_callback();
   }
 }
 
 void play_note(const tone_t *tone, void (*callback)(void)) {
-  // Set callback method
-  note_end_callback = callback;
-
-  // Save current length
-  current_note_length = tone->length;
-
   // Initialize with new tone
   TA0R = 0; // Reset timer to 0
   TA0CCR0 = tone->tone; // Initialize pulse width
@@ -56,7 +60,7 @@ void play_note(const tone_t *tone, void (*callback)(void)) {
   TA0CCTL2 = OUTMOD_3; // Output mode 3 (Set / Reset)
   TA0CTL |= MC_1; // Count up
 
-  wait(tone->length, &note_end_callback);
+  wait(tone->length, callback);
 }
 
 void play_init(void) {

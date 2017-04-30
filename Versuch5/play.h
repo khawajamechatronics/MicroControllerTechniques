@@ -8,9 +8,6 @@
 
 #define BUZZER BIT6
 
-#define MDATA MELODY_NAME##_DATA
-#define MNAME MELODY_NAME
-
 typedef struct {
   const uint16_t tone;
   const uint16_t length;

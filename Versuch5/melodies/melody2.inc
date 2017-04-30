@@ -2,8 +2,18 @@
 
 #ifdef MLENGTH
 #undef MLENGTH
-#endif //MLENGTH
+#endif // MLENGTH
 
+#ifdef MDATA
+#undef MDATA
+#endif // MDATA
+
+#ifdef MNAME
+#undef MNAME
+#endif // MNAME
+
+#define MNAME MELODY2
+#define MDATA MELODY2_DATA
 #define MLENGTH 3
 
 const tone_t MDATA[MLENGTH] = {

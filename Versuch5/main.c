@@ -14,23 +14,44 @@
 #include "melodies/melody2.inc"
 #undef MELODY_NAME
 
+// ----------------------------------------------------------------------------
 // Comment out to activate static melody
+// ----------------------------------------------------------------------------
 // #define STATIC_MELODY
+
+// ----------------------------------------------------------------------------
+// Definitions
+// ----------------------------------------------------------------------------
 
 #define BUTTON_PLAY BIT3
 #define BUTTON_PAUSE BIT4
+
+#ifdef STATIC_MELODY
+#define BUTTONS BUTTON_PAUSE
+#else
 #define BUTTONS (BUTTON_PLAY | BUTTON_PAUSE)
+#endif
+
+// ----------------------------------------------------------------------------
+// Types
+// ----------------------------------------------------------------------------
 
 typedef enum state {
   PAUSED,
   RUNNING,
-#ifndef STATIC_MELODY
   WAITING
-#endif
 } state_t;
+
+// ----------------------------------------------------------------------------
+// Standard methods
+// ----------------------------------------------------------------------------
 
 __inline void setup(void);
 __inline void loop(void);
+
+// ----------------------------------------------------------------------------
+// Methods
+// ----------------------------------------------------------------------------
 
 #ifdef STATIC_MELODY
 void melody_play(uint8_t melody);
@@ -42,17 +63,17 @@ __inline void pause_resume(void);
 void melody_finished(void);
 void button_measure(void);
 void button_reactivate(void);
+
+void piezo_measure_init(void);
 #endif
 
-#ifdef STATIC_MELODY
-static uint8_t current_melody;
-#endif
+// ----------------------------------------------------------------------------
+// Fields
+// ----------------------------------------------------------------------------
 
 static state_t current_state;
-
-#ifndef STATIC_MELODY
+static uint8_t current_melody;
 static uint8_t button_press_count;
-#endif
 
 /*
  * MSP430G2553
@@ -76,26 +97,12 @@ int main(void) {
 }
 
 __inline void setup() {
-  // Initialize player
-  play_init();
-
   // Initialize in non-paused state
   current_state = WAITING;
 
-#ifdef STATIC_MELODY
-  // Initialize pause button
-  P1SEL &= ~BUTTON_PAUSE; // Set as IO port
-  P1SEL2 &= ~BUTTON_PAUSE;
-  P1DIR &= ~BUTTON_PAUSE; // Set as input
-  P1REN |= BUTTON_PAUSE; // Enable pull-up /-down resistors
-  P1OUT |= BUTTON_PAUSE; // Pull-up
-  P1IES |= BUTTON_PAUSE; // Interrupt on high-to-low transition
-  P1IFG &= ~BUTTON_PAUSE; // Reset interrupt flag
-  P1IE |= BUTTON_PAUSE; // Enable interrupt
+  // No button was pressed
+  button_press_count = 0;
 
-  // Play first melody
-  melody_play(1);
-#else
   // Initialize buttons
   P1SEL &= ~BUTTONS; // Set as IO port
   P1SEL2 &= ~BUTTONS;
@@ -104,14 +111,41 @@ __inline void setup() {
   P1OUT |= BUTTONS; // Pull-up
   P1IES |= BUTTONS; // Interrupt on high-to-low transition
   P1IFG &= ~BUTTONS; // Reset interrupt flag
-  P1IE |= BUTTON_PLAY; // Enable interrupt
 
-  // No button was pressed
-  button_press_count = 0;
+#ifdef STATIC_MELODY
+  // Enable interrupt
+  P1IE |= BUTTON_PAUSE;
+
+  play_init(); // Initialize player
+  melody_play(1); // Play first melody
+#else
+
+  // Initialize piezo as input element
+  piezo_measure_init();
+
+  // Enable interrupt
+  P1IE |= BUTTON_PLAY;
 #endif
 }
 
-__inline void loop() { }
+__inline void loop() {
+#ifndef STATIC_MELODY
+  if (current_state == WAITING) {
+    // Poll piezo since port 3 has no interrupt capability
+    if (P3IN & BUZZER) {
+      // Disable play button
+      P1IE &= ~BUTTON_PLAY;
+
+      // Enable pause button
+      P1IE |= BUTTON_PAUSE;
+
+      current_state = RUNNING;
+      play_init();
+      play_melody(&MELODY1, &button_reactivate);
+    }
+  }
+#endif
+}
 
 // ----------------------------------------------------------------------------
 // Static play of melody
@@ -139,7 +173,7 @@ void melody_finished(void) {
     wait(16, &melody2_play);
     break;
   case 2:
-    // Do nothing
+    // Do nothing, we are finished
     break;
   }
 }
@@ -165,6 +199,7 @@ __interrupt void button_pressed(void) {
     TA0CTL |= t1_state;
     TA1CTL |= t2_state;
     break;
+  case WAITING:
   case RUNNING:
     // Save the state of both timer
     t1_state = TA0CTL & MC_1;
@@ -269,8 +304,10 @@ void button_measure(void) {
 
   current_state = RUNNING;
   if (button_press_count == 1) {
+    play_init();
     play_melody(&MELODY1, &button_reactivate);
   } else {
+    play_init();
     play_melody(&MELODY2, &button_reactivate);
   }
 }
@@ -279,10 +316,25 @@ void button_reactivate(void) {
   // Reset button press count
   button_press_count = 0;
 
+  // Reset state to waiting
+  current_state = WAITING;
+
+  // Activate piezo as input
+  piezo_measure_init();
+
   // Disable pause button
   P1IE &= ~BUTTON_PAUSE;
 
   // Enable play button
   P1IE |= BUTTON_PLAY;
+}
+
+void piezo_measure_init(void) {
+  // Initialize P3.6 as input port
+  P3SEL &= ~BUZZER; // Set as IO port
+  P3SEL2 &= ~BUZZER; // Set as IO port
+  P3DIR &= ~BUZZER; // Set as input
+  P3REN |= BUZZER; // Pull-up / -down enable
+  P3OUT &= ~BUZZER; // Pull-down
 }
 #endif

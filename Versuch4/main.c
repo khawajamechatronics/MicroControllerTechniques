@@ -158,7 +158,8 @@ __inline void process_analog_value(uint8_t index, uint16_t value) {
   case 1: // Red was measured
   case 2: // Green was measured
   case 3: // Blue was measured
-    adc_color_components[index] = value;
+    // Write analog value to temporary storage
+    adc_color_components[index - 1] = value;
 
     // Schedule next conversion
     adc_schedule_convert((index == 3) ? 1 : (index + 1));

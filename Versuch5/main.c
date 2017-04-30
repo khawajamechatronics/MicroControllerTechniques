@@ -72,8 +72,12 @@ void piezo_measure_init(void);
 // ----------------------------------------------------------------------------
 
 static state_t current_state;
+
+#ifdef STATIC_MELODY
 static uint8_t current_melody;
+#else
 static uint8_t button_press_count;
+#endif
 
 /*
  * MSP430G2553

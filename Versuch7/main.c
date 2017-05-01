@@ -107,6 +107,11 @@ __inline void setup(void) {
   P3REN &= ~(LEDR | REL_STAT | REL_DYN); // Disable pull-up /-down
   P3OUT &= ~(LEDR | REL_STAT | REL_DYN); // Write 0 to P3
 
+#ifndef STATIC_HEATING
+  // Set REL_STAT as input
+  P3DIR &= ~REL_STAT;
+#endif
+
   // Initialize the shift register
   shift_register_init();
 

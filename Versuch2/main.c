@@ -5,6 +5,10 @@
 
 #include <templateEMP.h>
 
+// ----------------------------------------------------------------------------
+// Definitions
+// ----------------------------------------------------------------------------
+
 #define LEDR (1 << 5)
 #define LEDG (1 << 6)
 #define LEDB (1 << 0)
@@ -15,10 +19,20 @@
 #define BUTTON6 (1 << 4)
 #define BUTTONS (BUTTON5 | BUTTON6)
 
-#define PORTS (LEDS | BUTTONS)
+#define P1INOUT (LEDS | BUTTONS)
+
+// #define BUTTON5_POLLING
+
+// ----------------------------------------------------------------------------
+// Standard methods
+// ----------------------------------------------------------------------------
 
 __inline void setup(void);
 __inline void loop(void);
+
+// ----------------------------------------------------------------------------
+// Methods
+// ----------------------------------------------------------------------------
 
 inline void set_led_green(void);
 inline void set_led_blue(void);
@@ -53,51 +67,51 @@ int main(void) {
 // Set up all custom stuff
 __inline void setup(void) {
   // Initialize P1.3 to P1.6 as I/O port
-  P1SEL &= ~PORTS;
-  P1SEL2 &= ~PORTS;
+  P1SEL &= ~P1INOUT;
+  P1SEL2 &= ~P1INOUT;
 
-  // Set as input / output w/ / w/o pull-up / pull-down
-  P1DIR |= LEDS;
-  P1DIR &= ~BUTTONS;
-  P1REN &= ~LEDS;
-  P1REN |= BUTTONS;
+  // Set as input- / output-port
+  P1DIR |= LEDS; // Set LEDs as output port
+  P1DIR &= ~BUTTONS; // Set buttons as input port
 
-  // Set buttons to pull-up
-  P1OUT |= BUTTONS;
+  // Activate / deactivate pull-up / pull-down
+  P1REN &= ~LEDS; // Disable pull-up / -down for LEDs
+  P1REN |= BUTTONS; // Enable pull-up / -down for both buttons
+  P1OUT |= BUTTONS; // Set buttons to pull-up
 
   // Initialize all LEDs (but LEDY) to low
-  P1OUT &= ~LEDS;
-  P1OUT |= LEDY;
+  P1OUT &= ~(LEDS & ~LEDY); // Set LEDs to low
+  P1OUT |= LEDY; // Set LEDY to high
 
   // Select interrupt edge (high-to-low)
-  P1IES |= BUTTON5;
+  P1IES |= BUTTON5; // Set button 5 interrupt edge
 
-  // Enable pin interrupt
-  P1IFG &= ~BUTTON5;
-  P1IE |= BUTTON5;
+#ifndef BUTTON5_POLLING
+  // Enable button 5 pin interrupt
+  P1IFG &= ~BUTTON5; // Reset interrupt flag
+  P1IE |= BUTTON5; // Enable interrupt
+#endif
 
-  // Reset Timer A0
-  TA0CTL = TACLR; // Clear timer
+  // Timer A control
+  TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
+      | ID_3 // Divider of 8
+      | MC_0; // Stopped mode
+  TA0CCTL0 = 0; // Disable interrupt
 
-  // Timer A0 compare
+  // Timer A compare
   // 1 MHz / 8 => 125 kHz
   // 125 kHz / 4 Hz => 31250
   TA0CCR0 = 0x7A12;
-
-  // Timer A0 compare control
-  TA0CCTL0 = 0; // Disable interrupt
-
-  // Timer A0 control
-  TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
-      | ID_3 // Divider of 8
-      | MC_1; // Up mode
 }
 
 // Runs infinitely
 __inline void loop(void) {
   set_led_green();
   set_led_blue();
-  // set_led_red();
+
+#ifdef BUTTON5_POLLING
+  set_led_red();
+#endif
 }
 
 // Set ISR for timer A0
@@ -105,23 +119,27 @@ __inline void loop(void) {
 __interrupt void timer(void) {
   TA0CCTL0 &= ~CCIE; // Disable interrupt
   TA0CCTL0 &= ~CCIFG; // Reset interrupt flag
+  TA0CTL &= ~MC_1; // Set Timer A to stopped mode
 
   // Set LED to off
   P1OUT &= ~LEDR;
   P1OUT |= LEDY;
 
+  // Activate button 5
   P1IFG &= ~BUTTON5; // Reset interrupt flag
   P1IE |= BUTTON5; // Enable interrupt
 }
 
 #pragma vector=PORT1_VECTOR
 __interrupt void button5_pressed(void) {
+  // Deactivate button 5
   P1IE &= ~BUTTON5; // Disable interrupt
   P1IFG &= ~BUTTON5; // Reset interrupt flag
 
-  TA0CTL |= TACLR; // Clear timer
+  TAR = 0; // Reset counter to 0
   TA0CCTL0 &= ~CCIFG; // Reset interrupt flag
   TA0CCTL0 |= CCIE; // Enable compare interrupt
+  TA0CTL |= MC_1; // Set Timer A to up mode (start timer)
 
   // Set LED to on
   P1OUT |= LEDR;

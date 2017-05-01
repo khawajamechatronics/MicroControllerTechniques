@@ -23,6 +23,12 @@
 #define REL_DYN BIT5
 
 #define BLINK_FREQUENCY 4
+#define NTC_MIN 330
+#define NTC_MAX 610
+
+#define LIMIT(x,l,u) ((x > u) ? u : ((x < l) ? l : x))
+
+// #define STATIC_HEATING
 
 // ----------------------------------------------------------------------------
 // Standard methods
@@ -38,10 +44,14 @@ __inline void loop(void);
 __inline int8_t hang();
 __inline uint16_t measure_ntc(void);
 
+void update_temp(void);
+void update_heater(void);
+
 // ----------------------------------------------------------------------------
 // Fields
 // ----------------------------------------------------------------------------
 
+static uint16_t ntc_value = 0;
 
 /*
  * MSP430G2553
@@ -91,14 +101,11 @@ __inline void setup(void) {
   P1OUT |= BUTTON_HANG; // Set button to pull-up
 
   // Configure port P3
-  P3SEL &= ~(LEDR | REL_STAT); // Set as IO port
-  P3SEL |= REL_DYN; // Set P3.5 as PWM output
+  P3SEL &= ~(LEDR | REL_STAT | REL_DYN); // Set as IO port
   P3SEL2 &= ~(LEDR | REL_STAT | REL_DYN);
-
-  P3DIR |= (LEDR | REL_STAT); // Set LED and REL_STAT as output
-  P3DIR |= REL_DYN; // Select Timer0 TA1 function
-
+  P3DIR |= (LEDR | REL_STAT | REL_DYN); // Set LED and relay as output
   P3REN &= ~(LEDR | REL_STAT | REL_DYN); // Disable pull-up /-down
+  P3OUT &= ~(LEDR | REL_STAT | REL_DYN); // Write 0 to P3
 
   // Initialize the shift register
   shift_register_init();
@@ -130,6 +137,10 @@ __inline void setup(void) {
   // Initialize the WDT
   wdt_init();
 
+  // Measure the start temperature
+  update_temp();
+  update_heater();
+
   // Schedule measurement
   TA0CTL |= MC_1; // Set to up mode
 }
@@ -139,12 +150,15 @@ __inline void loop(void) {
   // Switch LED
   P1OUT ^= LEDG;
 
-  int8_t counter;
-  for (counter = 16; (counter >= 0) | hang(); counter--) {
-    __delay_cycles(1000000 / BLINK_FREQUENCY / 16 / 2);
+  int16_t counter;
+  for (counter = 50; (counter >= 0) | hang(); counter--) {
+    // Set the heater to on / off
+    update_heater();
 
     // Stop WDT from resetting the uController
     wdt_reset();
+
+    __delay_cycles(1000000 / BLINK_FREQUENCY / 50 / 2);
   }
 }
 
@@ -163,10 +177,7 @@ __inline uint16_t measure_ntc(void) {
       | ADC10SC; // Start the conversion
 
   // Wait for ADC to finish
-  while (ADC10CTL1 & ADC10BUSY) {
-    // Stop WDT from resetting the uController
-    wdt_reset();
-  }
+  while (ADC10CTL1 & ADC10BUSY);
 
   // Return read value
   return ADC10MEM;
@@ -174,11 +185,55 @@ __inline uint16_t measure_ntc(void) {
 
 #pragma vector=TIMER0_A0_VECTOR
 __interrupt void timer(void) {
-  //uint16_t ntc_value = measure_ntc();
-
-  // TODO
-  set_shift_register_leds(0xFF);
+  // Update the temperature
+  update_temp();
 
   // Reset interrupt flag
   TA0CCTL0 &= ~CCIFG;
+}
+
+void update_temp(void) {
+  int16_t ntc_analog_value = (int16_t) measure_ntc();
+  int16_t temp_value = (ntc_analog_value - NTC_MIN) * 6 / (NTC_MAX - NTC_MIN);
+  ntc_value = LIMIT(temp_value, 0, 5);
+
+  uint8_t leds = 0x00;
+  switch (ntc_value) {
+  case 5:
+  case 4:
+    leds |= 0x08;
+  case 3:
+    leds |= 0x04;
+  case 2:
+    leds |= 0x02;
+  case 1:
+    leds |= 0x01;
+  case 0:
+    // Set current temperature
+    set_shift_register_leds(leds);
+
+    // Set red LED if overheating
+    if (ntc_value != 5)
+      P3OUT &= ~LEDR;
+    else
+      P3OUT |= LEDR;
+    break;
+  }
+}
+
+void update_heater(void) {
+  // Check if in range 4 or above
+  if (ntc_value >= 4) {
+    // Deactivate heater
+#ifdef STATIC_HEATING
+    P3OUT &= ~REL_STAT;
+#endif
+  } else {
+    // Activate heater
+#ifdef STATIC_HEATING
+    P3OUT |= REL_STAT;
+#else
+    P3OUT ^= REL_DYN;
+#endif
+  }
 }

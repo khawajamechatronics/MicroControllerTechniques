@@ -7,26 +7,46 @@
 
 #include "shift_register.h"
 
+// ----------------------------------------------------------------------------
+// Definitions
+// ----------------------------------------------------------------------------
+
 #define LED_D5 (1 << 3)
 #define LED_D6 (1 << 4)
 #define LED_D7 (1 << 5)
 #define LEDS (LED_D5 | LED_D6 | LED_D7)
 
+// ----------------------------------------------------------------------------
+// Types
+// ----------------------------------------------------------------------------
+
 typedef enum playback_mode {
-  PLAY = 0b0010,
-  PAUSE = 0b0100,
   FAST_REWIND = 0b1000,
+  PAUSE = 0b0100,
+  PLAY = 0b0010,
   FAST_FORWARD = 0b0001
 } playback_mode_t;
+
+// ----------------------------------------------------------------------------
+// Standard methods
+// ----------------------------------------------------------------------------
 
 __inline void setup(void);
 __inline void loop(void);
 
+// ----------------------------------------------------------------------------
+// Methods
+// ----------------------------------------------------------------------------
+
 __inline void update_state(int8_t count);
 __inline void process_button_states(uint8_t state);
 
-__inline void set_leds(uint8_t state);
+__inline void set_shift_leds(uint8_t state);
 __inline void set_aux_leds(uint8_t state);
+
+// ----------------------------------------------------------------------------
+// Fields
+// ----------------------------------------------------------------------------
 
 static playback_mode_t mode;
 
@@ -79,29 +99,28 @@ __inline void setup(void) {
   // Initialize the shift register
   shift_register_init();
 
+  // Initialize the internal state
   led_state = 0;
   led_aux_state = 0;
   timing_counter = 0;
   mode = PAUSE;
 
-  // Reset Timer A0
-  TA0CTL = TACLR; // Clear timer
-
-  // Timer A0 compare
+  // Timer A compare
   // 1 MHz / 8 => 125 kHz
   // 125 kHz / 8 Hz => 15625
   TA0CCR0 = 0x3D09;
 
-  // Timer A0 compare control
-  TA0CCTL0 = CCIE; // Enable interrupt
+  // Reset Timer A
+  TA0R = 0;
 
-  // Timer A0 control
+  // Timer A control
   TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
       | ID_3 // Divider of 8
       | MC_1; // Up mode
+  TA0CCTL0 = CCIE; // Enable interrupt
 
   // Initialize LEDs
-  set_leds(led_state);
+  set_shift_leds(led_state);
   set_aux_leds(led_aux_state);
 }
 
@@ -177,6 +196,7 @@ __inline void process_button_states(uint8_t state) {
 }
 
 __inline void update_state(int8_t count) {
+  // Update the LEDs state and limit it's values
   led_state += (count > 0) ? count : (4 + count);
   led_state &= 0x03;
 
@@ -186,7 +206,7 @@ __inline void update_state(int8_t count) {
   }
 
   //Write new state to shift register
-  set_leds(led_state);
+  set_shift_leds(led_state);
 
   // Write auxiliary LEDs
   set_aux_leds(led_aux_state);
@@ -197,6 +217,13 @@ __inline void set_aux_leds(uint8_t state) {
   P1OUT |= (1 << (state + 3));
 }
 
-__inline void set_leds(uint8_t state) {
+__inline void set_shift_leds(uint8_t state) {
+  static uint8_t rate_divider = 0;
+
+  // Only write each 128th value since the LEDs are too bright
+  if (++rate_divider & 0x7F) {
+    return;
+  }
+
   set_shift_register_leds(1 << (3 - state));
 }

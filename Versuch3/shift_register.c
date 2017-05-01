@@ -18,13 +18,6 @@ __inline void shift_register_init(void) {
 }
 
 __inline void set_shift_register_leds(uint8_t state) {
-  static uint8_t rate_divider = 0;
-
-  // Only write each 128th value since the LEDs are too bright
-  if (++rate_divider & 0x7F) {
-    return;
-  }
-
   // Enable shifting for shift register 2
   P2OUT = (P2OUT & ~0x03) | BIT0;
 

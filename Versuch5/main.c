@@ -187,6 +187,8 @@ void melody2_play(void) {
 __interrupt void button_pressed(void) {
   static uint8_t t1_state;
   static uint8_t t2_state;
+  static uint8_t t1_int;
+  static uint8_t t2_int;
 
   switch (current_state) {
   case PAUSED:
@@ -194,8 +196,8 @@ __interrupt void button_pressed(void) {
     current_state = RUNNING;
 
     // Resume timer
-    TA0CTL |= t1_state;
-    TA1CTL |= t2_state;
+    TA0CTL |= t1_state | t1_int;
+    TA1CTL |= t2_state | t2_int;
     break;
   case WAITING:
   case RUNNING:
@@ -203,8 +205,17 @@ __interrupt void button_pressed(void) {
     t1_state = TA0CTL & MC_1;
     t2_state = TA1CTL & MC_1;
 
-    TA0CTL &= ~MC_1; // Deactivate timer
-    TA1CTL &= ~MC_1; // Deactivate timer
+    // Deactivate timer
+    TA0CTL &= ~MC_1;
+    TA1CTL &= ~MC_1;
+
+    // Save interrupt state
+    t1_int = TA0CCTL0 & CCIFG;
+    t2_int = TA1CCTL0 & CCIFG;
+
+    // Remove pending interrupts
+    TA0CCTL0 &= ~CCIFG;
+    TA1CCTL0 &= ~CCIFG;
 
     current_state = PAUSED;
     break;
@@ -252,6 +263,8 @@ __interrupt void button_pressed(void) {
 __inline void pause_resume(void) {
   static uint8_t t1_state;
   static uint8_t t2_state;
+  static uint8_t t1_int;
+  static uint8_t t2_int;
 
   switch (current_state) {
   case WAITING:
@@ -262,8 +275,8 @@ __inline void pause_resume(void) {
     current_state = RUNNING;
 
     // Resume state
-    TA0CTL |= t1_state;
-    TA1CTL |= t2_state;
+    TA0CTL |= t1_state | t1_int;
+    TA1CTL |= t2_state | t2_int;
     break;
 
   case RUNNING:
@@ -271,8 +284,17 @@ __inline void pause_resume(void) {
     t1_state = TA0CTL & MC_1;
     t2_state = TA1CTL & MC_1;
 
-    TA0CTL &= ~MC_1; // Deactivate timer
-    TA1CTL &= ~MC_1; // Deactivate timer
+    // Deactivate timer
+    TA0CTL &= ~MC_1;
+    TA1CTL &= ~MC_1;
+
+    // Save interrupt state
+    t1_int = TA0CCTL0 & CCIFG;
+    t2_int = TA1CCTL0 & CCIFG;
+
+    // Remove pending interrupts
+    TA0CCTL0 &= ~CCIFG;
+    TA1CCTL0 &= ~CCIFG;
 
     current_state = PAUSED;
     break;

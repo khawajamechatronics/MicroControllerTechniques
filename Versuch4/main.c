@@ -5,8 +5,84 @@
 
 #include <templateEMP.h>
 
-#include "main.h"
 #include "shift_register.h"
+
+// ----------------------------------------------------------------------------
+// Definitions
+// ----------------------------------------------------------------------------
+
+#define POT BIT5
+#define LDR BIT4
+#define ANALOG_IN (POT | LDR)
+
+#define LEDR BIT0
+#define LEDG BIT1
+#define LEDB BIT2
+#define LEDS (LEDR | LEDG | LEDB)
+
+#define ABS(x) (x > 0 ? x : -x)
+
+// ----------------------------------------------------------------------------
+// ADC / Color definitions
+// ----------------------------------------------------------------------------
+
+#define ADC_VALUES 4
+#define COLORS 5
+
+static const uint16_t ADC_CHANNEL[ADC_VALUES] = {
+  INCH_5, INCH_4, INCH_4, INCH_4
+};
+
+static const uint8_t ADC_LEDS[ADC_VALUES] = {
+  0, LEDR, LEDG, LEDB
+};
+
+// Color names which are printed out to the console
+static const char* COLOR_NAMES[COLORS + 1] = {
+  "none",
+  "white",
+  "black",
+  "red",
+  "green",
+  "blue"
+};
+
+// Color components averaged from 3 measurements per color
+static const uint16_t COLOR_COMPONENTS[COLORS][3] = {
+  { 200, 240, 240 }, // White
+  { 80, 100, 115 }, // Black
+  { 180, 140, 130 }, // Red
+  { 90, 160, 125 }, // Green
+  { 90, 130, 180 } // Blue
+};
+
+// Maximum squared distance between color and measured color
+static const uint16_t COLOR_DIFF_THRESHOLD = 20;
+
+// Number of measurement points to switch to new color
+static const uint16_t COLOR_DETECT_THRESHOLD = 3;
+
+// ----------------------------------------------------------------------------
+// Standard methods
+// ----------------------------------------------------------------------------
+
+__inline void setup(void);
+__inline void loop(void);
+
+// ----------------------------------------------------------------------------
+// Methods
+// ----------------------------------------------------------------------------
+
+__inline void process_analog_value(uint8_t index, uint16_t value);
+__inline void adc_convert(uint8_t index);
+__inline void adc_schedule_convert(uint8_t index);
+
+void identify_color(void);
+void report_new_color(uint8_t index);
+
+// ----------------------------------------------------------------------------
+// Fields
+// ----------------------------------------------------------------------------
 
 static uint16_t adc_current_convert;
 
@@ -70,22 +146,18 @@ __inline void setup(void) {
       | ADC10IE; // Enable interrupt
   ADC10AE0 = POT | LDR; // Enable channels
 
-  // Reset Timer A0
-  TA0CTL = TACLR; // Clear timer
-
-  // Timer A0 compare
+  // Timer A compare
   // 1 MHz / 8 => 125 kHz
   // 125 kHz / 10 Hz => 12500
   // TA0CCR0 = 0x30D4;
   TA0CCR0 = 0x30D4;
+  TA0R = 0; // Reset Timer A
 
-  // Timer A0 compare control
-  TA0CCTL0 = CCIE; // Enable interrupt
-
-  // Timer A0 control
+  // Timer A control
   TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
       | ID_3 // Divider of 8
       | MC_0; // Disabled
+  TA0CCTL0 = CCIE; // Enable interrupt
 
   // Initialize color recognition
   current_color = 0; // (NONE)
@@ -99,7 +171,7 @@ __inline void setup(void) {
   // Schedule first color conversion
   adc_schedule_convert(1);
 
-  // Start with first conversion
+  // Start with first potentiometer readout
   adc_convert(0);
 }
 
@@ -217,7 +289,7 @@ __inline void adc_schedule_convert(uint8_t index) {
   P3OUT &= ~LEDS;
   P3OUT |= ADC_LEDS[index];
 
-  // Start timer
+  // Start timer and wait until LED was on long enough
   TA0CTL |= MC_1;
 }
 

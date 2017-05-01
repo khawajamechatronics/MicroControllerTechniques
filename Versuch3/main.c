@@ -12,7 +12,7 @@
 #define LED_D7 (1 << 5)
 #define LEDS (LED_D5 | LED_D6 | LED_D7)
 
-typedef enum {
+typedef enum playback_mode {
   PLAY = 0b0010,
   PAUSE = 0b0100,
   FAST_REWIND = 0b1000,

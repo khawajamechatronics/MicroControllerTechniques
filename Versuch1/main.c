@@ -5,13 +5,25 @@
 
 #include <templateEMP.h>
 
+// ----------------------------------------------------------------------------
+// Definitions
+// ----------------------------------------------------------------------------
+
 #define LED_POFFSET 4
 #define LEDR (1 << 4)
 #define LEDB (1 << 5)
 #define LEDS (LEDR | LEDB)
 
+// ----------------------------------------------------------------------------
+// Standard methods
+// ----------------------------------------------------------------------------
+
 __inline void setup(void);
 __inline void loop(void);
+
+// ----------------------------------------------------------------------------
+// Fields
+// ----------------------------------------------------------------------------
 
 // Store LED status
 static uint8_t current_state;
@@ -54,18 +66,18 @@ __inline void setup(void) {
   // Initialize to 0
   P1OUT &= ~LEDS;
 
-  // Reset Timer A0
+  // Reset Timer A
   TA0CTL = TACLR; // Clear timer
 
-  // Timer A0 compare
+  // Timer A compare
   // 1 MHz / 8 => 125 kHz
   // 125 kHz / 4 Hz => 31250
   TA0CCR0 = 0x7A12;
 
-  // Timer A0 compare control
+  // Timer A compare control
   TA0CCTL0 = CCIE; // Enable compare interrupt
 
-  // Timer A0 control
+  // Timer A control
   TA0CTL = TASSEL_2 // SMCLK as source (1 MHz)
       | ID_3 // Divider of 8
       | MC_1; // Up mode

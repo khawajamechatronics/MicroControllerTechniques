@@ -15,13 +15,10 @@
 #undef MELODY_NAME
 
 // ----------------------------------------------------------------------------
-// Comment out to activate static melody
-// ----------------------------------------------------------------------------
-// #define STATIC_MELODY
-
-// ----------------------------------------------------------------------------
 // Definitions
 // ----------------------------------------------------------------------------
+
+// #define STATIC_MELODY
 
 #define BUTTON_PLAY BIT3
 #define BUTTON_PAUSE BIT4
@@ -191,15 +188,12 @@ __interrupt void button_pressed(void) {
   static uint8_t t1_state;
   static uint8_t t2_state;
 
-  // Disable interrupt
-  P1IE &= ~BUTTON_PAUSE;
-
   switch (current_state) {
   case PAUSED:
     // Set state to playing
     current_state = RUNNING;
 
-    // Resume state
+    // Resume timer
     TA0CTL |= t1_state;
     TA1CTL |= t2_state;
     break;
@@ -220,7 +214,6 @@ __interrupt void button_pressed(void) {
   while (!(P1IN & BUTTON_PAUSE));
 
   P1IFG &= ~BUTTON_PAUSE; // Reset interrupt flag
-  P1IE |= BUTTON_PAUSE; // Re-enable interrupt
 }
 #endif
 
@@ -231,22 +224,16 @@ __interrupt void button_pressed(void) {
 #ifndef STATIC_MELODY
 #pragma vector=PORT1_VECTOR
 __interrupt void button_pressed(void) {
-  uint8_t flags = P1IFG & BUTTONS; // Save interrupt flags
-  uint8_t enable = P1IE & BUTTONS; // Save enabled flags
-
-  P1IE &= ~BUTTONS; // Disable interrupts
-
   // Handle button press
-  if (flags & BUTTON_PAUSE) {
+  if (P1IFG & BUTTON_PAUSE) {
     pause_resume();
 
     // Reset interrupt flag for pause button
     P1IFG &= ~BUTTON_PAUSE;
-    P1IE |= enable | BUTTON_PAUSE; // Re-enable interrupt
     return;
   }
 
-  if (flags & BUTTON_PLAY) {
+  if (P1IFG & BUTTON_PLAY) {
     // No button was pressed
     if (button_press_count == 0) {
       // Schedule measurement
@@ -258,12 +245,8 @@ __interrupt void button_pressed(void) {
 
     // Reset interrupt flag for play button
     P1IFG &= ~BUTTON_PLAY;
-    P1IE |= enable | BUTTON_PLAY; // Re-enable interrupt
     return;
   }
-
-  // Hang since this is an unwanted case (for debugging)
-  for (;;);
 }
 
 __inline void pause_resume(void) {

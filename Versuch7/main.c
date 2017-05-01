@@ -156,14 +156,14 @@ __inline void loop(void) {
   P1OUT ^= LEDG;
 
   int16_t counter;
-  for (counter = 50; (counter >= 0) | hang(); counter--) {
+  for (counter = 500; (counter >= 0) | hang(); counter--) {
     // Set the heater to on / off
     update_heater();
 
     // Stop WDT from resetting the uController
     wdt_reset();
 
-    __delay_cycles(1000000 / BLINK_FREQUENCY / 50 / 2);
+    __delay_cycles(1000000 / BLINK_FREQUENCY / 500 / 2);
   }
 }
 

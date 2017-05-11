@@ -1,2 +1,5 @@
 Feedback
 ========
+- Color detection is really hard due to non-working serial connection.
+- Reading of color sensor / potentiometer can be interleaved to get a fast
+  response LED rate.

@@ -1,2 +1,4 @@
 Feedback
 ========
+- The LEDs connected to the shift register are quite bright
+  -> High refresh-rate causes all LEDs to look activated

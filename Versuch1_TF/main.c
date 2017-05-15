@@ -55,6 +55,10 @@ __inline void setup(void) {
   // Set initial state
   current_state = 0x00;
 
+  /*
+   * Initialize all IO ports.
+   */
+
   // Initialize P1.4 & P1.5 as I/O port
   P1SEL &= ~LEDS;
   P1SEL2 &= ~LEDS;
@@ -65,6 +69,10 @@ __inline void setup(void) {
 
   // Initialize to 0
   P1OUT &= ~LEDS;
+
+  /*
+   * Set the Timer A to trigger an interrupt 4 times per seconds.
+   */
 
   // Reset Timer A
   TA0CTL = TACLR; // Clear timer

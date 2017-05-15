@@ -218,12 +218,5 @@ __inline void set_aux_leds(uint8_t state) {
 }
 
 __inline void set_shift_leds(uint8_t state) {
-  static uint8_t rate_divider = 0;
-
-  // Only write each 128th value since the LEDs are too bright
-  if (++rate_divider & 0x7F) {
-    return;
-  }
-
   set_shift_register_leds(1 << (3 - state));
 }

@@ -1,4 +1,5 @@
 // (c) Tobias Faller 2017
+// (c) Tim Maffenb(e)ier 2017
 
 #include <msp430.h>
 #include <stdint.h>
@@ -30,7 +31,7 @@ __inline void set_shift_register_leds(uint8_t state) {
 
   uint8_t i;
   for (i = 0; i < 4; i++) { // Write each LED
-    if (state >> i) {
+    if ((state >> i) & 0x01) {
       P2OUT |= BIT6; // Set LED to high
     } else {
       P2OUT &= ~BIT6; // Set LED to low

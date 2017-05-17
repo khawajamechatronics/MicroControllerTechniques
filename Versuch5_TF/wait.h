@@ -1,4 +1,5 @@
 // (c) Tobias Faller 2017
+// (c) Tim Maffenb(e)ier 2017
 
 #ifndef _WAIT_H_
 #define _WAIT_H_

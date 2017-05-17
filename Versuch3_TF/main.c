@@ -1,4 +1,5 @@
 // (c) Tobias Faller 2017
+// (c) Tim Maffenb(e)ier 2017
 
 #include <msp430.h>
 #include <stdint.h>
@@ -140,8 +141,8 @@ __interrupt void timer(void) {
     update_state(1);
     break;
   case PLAY:
-    // We want to update every second => division by 8
-    if ((++timing_counter & 0x07) == 0) {
+    // We want to update every 1/4 second => division by 2
+    if ((++timing_counter & 0x01) == 0) {
       update_state(1);
     }
     break;

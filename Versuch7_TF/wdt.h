@@ -1,4 +1,5 @@
 // (c) Tobias Faller 2017
+// (c) Tim Maffenb(e)ier 2017
 
 #ifndef _WDT_H_
 #define _WDT_H_

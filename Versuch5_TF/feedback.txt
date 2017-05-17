@@ -1,2 +1,3 @@
 Feedback
 ========
+- Funny exercise predestined for spaghetti-code.

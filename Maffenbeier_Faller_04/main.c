@@ -23,45 +23,47 @@
 
 #define ABS(x) (x > 0 ? x : -x)
 
+// Maximum squared distance between color and measured color
+#define COLOR_DIFF_THRESHOLD 25
+
+// Number of measurement points to switch to new color
+#define COLOR_DETECT_THRESHOLD 2
+
+// #define DEBUG_COLORS
+
 // ----------------------------------------------------------------------------
 // ADC / Color definitions
 // ----------------------------------------------------------------------------
 
-#define ADC_VALUES 4
+#define ADC_VALUES 7
+#define ADC_POTI_CONVERT 0xFF
+#define ADC_SCHEDULE_EMPTY 0xFF
 #define COLORS 5
 
-static const uint16_t ADC_CHANNEL[ADC_VALUES] = {
-  INCH_5, INCH_4, INCH_4, INCH_4
-};
-
 static const uint8_t ADC_LEDS[ADC_VALUES] = {
-  0, LEDR, LEDG, LEDB
+  LEDR, LEDG, LEDB,
+  LEDR | LEDG, LEDG | LEDB, LEDR | LEDB,
+  LEDR | LEDG | LEDB
 };
 
 // Color names which are printed out to the console
 static const char* COLOR_NAMES[COLORS + 1] = {
   "none",
-  "white",
-  "black",
   "red",
   "green",
-  "blue"
+  "blue",
+  "white",
+  "black"
 };
 
 // Color components averaged from 3 measurements per color
-static const uint16_t COLOR_COMPONENTS[COLORS][3] = {
-  { 200, 240, 240 }, // White
-  { 80, 100, 115 }, // Black
-  { 180, 140, 130 }, // Red
-  { 90, 160, 125 }, // Green
-  { 90, 130, 180 } // Blue
+static const uint16_t COLOR_COMPONENTS[COLORS][7] = {
+  { 235, 153, 137, 256, 201, 271, 317 }, // Red
+  { 122, 169, 121, 195, 205, 168, 248 }, // Green
+  { 122, 140, 181, 170, 231, 224, 273 }, // Blue
+  { 247, 244, 234, 338, 334, 354, 426 }, // White
+  { 121, 121, 114, 150, 164, 162, 211 } // Black
 };
-
-// Maximum squared distance between color and measured color
-static const uint16_t COLOR_DIFF_THRESHOLD = 20;
-
-// Number of measurement points to switch to new color
-static const uint16_t COLOR_DETECT_THRESHOLD = 3;
 
 // ----------------------------------------------------------------------------
 // Standard methods
@@ -77,6 +79,7 @@ __inline void loop(void);
 __inline void process_analog_value(uint8_t index, uint16_t value);
 __inline void adc_convert(uint8_t index);
 __inline void adc_schedule_convert(uint8_t index);
+__inline void set_leds(uint8_t value);
 
 void identify_color(void);
 void report_new_color(uint8_t index);
@@ -90,7 +93,7 @@ static uint16_t adc_current_convert;
 static uint16_t adc_scheduled_convert;
 static uint16_t adc_scheduled_convert_start;
 
-static uint16_t adc_color_components[3];
+static uint16_t adc_color_components[ADC_VALUES];
 
 static uint8_t current_color;
 static uint8_t new_color;
@@ -101,11 +104,11 @@ static uint16_t new_color_time;
  *
  * Wiring:
  *   P1.4 K2 LDR
- *   P1.5 Potentiometer
+ *   P1.5 X6 U_POT (Potentiometer)
  *
  *   P3.0 K3 (red)
  *   P3.1 K4 (green)
- *   P3.2 HEATER (blue)
+ *   P3.2 X10 HEATER (blue)
  *
  * Additional notes:
  * P3.2 HEATER
@@ -166,14 +169,14 @@ __inline void setup(void) {
   new_color_time = 0;
 
   // Initialize with empty schedule
-  adc_scheduled_convert = 0; // (NONE)
+  adc_scheduled_convert = ADC_SCHEDULE_EMPTY; // (NONE)
   adc_scheduled_convert_start = 0x00;
 
   // Schedule first color conversion
-  adc_schedule_convert(1);
+  adc_schedule_convert(0);
 
   // Start with first potentiometer readout
-  adc_convert(0);
+  adc_convert(ADC_POTI_CONVERT);
 }
 
 // Runs infinitely
@@ -194,7 +197,7 @@ __interrupt void adc_finished(void) {
     adc_convert(adc_scheduled_convert);
   } else {
     // Choose next sample and start ADC
-    adc_convert(0);
+    adc_convert(ADC_POTI_CONVERT);
   }
 }
 
@@ -228,40 +231,62 @@ __interrupt void timer(void) {
  */
 __inline void process_analog_value(uint8_t index, uint16_t value) {
   switch (index) {
-  case 1: // Red was measured
-  case 2: // Green was measured
-  case 3: // Blue was measured
+  case 0: // Red was measured
+  case 1: // Green was measured
+  case 2: // Blue was measured
+  case 3: // Red + Green was measured
+  case 4: // Green + Blue was measured
+  case 5: // Red + Blue was measured
+  case 6: // Red + Green + Blue was measured
     // Write analog value to temporary storage
-    adc_color_components[index - 1] = value;
+    adc_color_components[index] = value;
 
     // Schedule next conversion
-    adc_schedule_convert((index == 3) ? 1 : (index + 1));
+    // If we reached index 6 we start from 0
+    adc_schedule_convert((index == 6) ? 0 : (index + 1));
 
-    // Update current color
-    /*if (index == 2) {
+    // Update current color since we read the last color component
+    if (index == 6) {
       identify_color();
-    }*/
+    }
     break;
-  case 0: // Potentiometer was measured
+  case ADC_POTI_CONVERT: // Potentiometer was measured
     /*
      * Explanation:
-     *   We want our 10 bit value on a 5 bit range => shift by 5
-     *   (value >> 5)
+     *   We want our 10 bit value (0-1023) on a 5 value range
+     *   => shift by 7 for a 3 bit range
+     *   (value >> 7)
      *
-     *   We want only 3/4 of this value since the
-     *   highest led occupies 1,5 ranges
-     *   (value * 3 / 4) >> 5
-     *   = ((value << 2 - value) / 4) >> 5
-     *   = ((value << 2 - value) >> 2) >> 5
-     *   = ((value << 2 - value) >> (2 + 5)
-     *
-     *   We want that no LED is active when on lowest bucket
-     *   (((value << 2) - value) >> (2 + 5)) >> 1
-     *   = ((value << 2) - value) >> 8
+     *   We want only 5 / 8 of this value
+     *   (value * 5 / 8) >> 7
+     *   = ((value * 4 + value) / 8) >> 7
+     *   = ((value << 2 + value) / 8) >> 7
+     *   = ((value << 2 + value) >> 3) >> 7
+     *   = ((value << 2 + value) >> (3 + 7)
      */
-    set_shift_register_leds(((value << 2) - value) >> 8);
+    set_leds(((value << 2) + value) >> 10);
     break;
   }
+}
+
+__inline void set_leds(uint8_t value) {
+  uint8_t display_value = 0x00;
+
+  switch (value) {
+  default:
+  case 4:
+    display_value |= 1 << 3;
+  case 3:
+    display_value |= 1 << 2;
+  case 2:
+    display_value |= 1 << 1;
+  case 1:
+    display_value |= 1 << 0;
+  case 0:
+    break;
+  }
+
+  set_shift_register_leds(display_value);
 }
 
 __inline void adc_convert(uint8_t index) {
@@ -272,7 +297,8 @@ __inline void adc_convert(uint8_t index) {
   adc_current_convert = index;
 
   // Select next channel
-  ADC10CTL1 = (ADC10CTL1 & 0x0FFF) | ADC_CHANNEL[index];
+  ADC10CTL1 = (ADC10CTL1 & 0x0FFF)
+      | ((index == ADC_POTI_CONVERT) ? INCH_5 : INCH_4);
 
   // Start ADC conversion
   ADC10CTL0 |= ENC // Enable conversion
@@ -295,13 +321,23 @@ __inline void adc_schedule_convert(uint8_t index) {
 }
 
 void identify_color(void) {
-  serialPrint("Current analyzed color: ");
+#ifdef DEBUG_COLORS
+  serialPrint("r: ");
   serialPrintInt(adc_color_components[0]);
-  serialPrint(", ");
+  serialPrint(", g: ");
   serialPrintInt(adc_color_components[1]);
-  serialPrint(", ");
+  serialPrint(", b: ");
   serialPrintInt(adc_color_components[2]);
+  serialPrint(", r+g: ");
+  serialPrintInt(adc_color_components[3]);
+  serialPrint(", g+b: ");
+  serialPrintInt(adc_color_components[4]);
+  serialPrint(", r+b: ");
+  serialPrintInt(adc_color_components[5]);
+  serialPrint(", r+g+b: ");
+  serialPrintInt(adc_color_components[6]);
   serialPrintln("");
+#endif
 
   // Save color candidates
   int8_t candidates_size = 0;
@@ -309,37 +345,38 @@ void identify_color(void) {
 
   int8_t color;
   for (color = COLORS - 1; color >= 0; --color) {
-    // Squared difference to the tested color
-    // uint16_t diff = 0;
+    uint16_t diff = 0;
 
     // Calculate the difference to comparing color
     int8_t i;
-    for (i = 2; i >= 0; i--) {
+    for (i = 6; i >= 0; --i) {
       // Calculate difference of color component
       int16_t d = (int16_t) adc_color_components[i]
           - (int16_t) COLOR_COMPONENTS[color][i];
-      // d *= d; // Square the difference
+      d = ABS(d);
 
-      if (d <= (int16_t) COLOR_DIFF_THRESHOLD) {
+      if (d > (int16_t) COLOR_DIFF_THRESHOLD) {
+#ifndef DEBUG_COLORS
         break;
+#endif
       }
+
+      diff += d;
 
       if (i == 0) {
-        canddidates[candidates_size][0] = (uint16_t) color;
-        canddidates[candidates_size][1] = (uint16_t) d;
+#ifdef DEBUG_COLORS
+        serialPrint("Color: ");
+        serialPrint(COLOR_NAMES[color + 1]);
+        serialPrint(", diff: ");
+        serialPrintInt(diff);
+        serialPrintln("");
+#endif
+
+        canddidates[candidates_size][0] = (uint16_t) color + 1;
+        canddidates[candidates_size][1] = (uint16_t) diff;
         candidates_size++;
       }
-      // Sum the squared difference
-      //diff += (uint16_t) d;
     }
-
-    // Check if difference is smaller than a selected threshold
-    // This preselects our candidates
-    /*if ((int16_t) diff <= (int16_t) COLOR_DIFF_THRESHOLD) {
-      canddidates[candidates_size][0] = color;
-      canddidates[candidates_size][1] = diff;
-      candidates_size++;
-    }*/
   }
 
   if (candidates_size == 0) {
@@ -355,6 +392,11 @@ void identify_color(void) {
       }
     }
   }
+
+#ifdef DEBUG_COLORS
+  serialPrint("Color: ");
+  serialPrintln(COLOR_NAMES[color]);
+#endif
 
   if (color != current_color) {
     if (color != new_color) {

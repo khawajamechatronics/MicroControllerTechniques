@@ -1,7 +1,7 @@
 // (c) Tobias Faller 2017
 
-#ifndef _TETRIS
-#define _TETRIS
+#ifndef __TETRIS_H
+#define __TETRIS_H
 
 #include <stdint.h>
 
@@ -98,4 +98,4 @@ tetris_get_field_item (field_t *field, uint8_t x, uint8_t y);
 __inline bool_t
 tetris_is_field_item_empty(const field_item_t *item);
 
-#endif //!_TETRIS
+#endif // !__TETRIS_H

@@ -1,7 +1,7 @@
 // (c) Tobias Faller 2017
 
-#ifndef _TIMER
-#define _TIMER
+#ifndef __TIMER_H
+#define __TIMER_H
 
 #include <stdint.h>
 
@@ -106,4 +106,4 @@ timer_set_divider (timer_t timer, timer_divider_t divider);
 __inline void
 timer_set_callback (timer_t timer, void (*callback)(void));
 
-#endif //!_TIMER
+#endif // !__TIMER_H

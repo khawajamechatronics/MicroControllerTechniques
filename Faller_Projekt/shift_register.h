@@ -1,7 +1,7 @@
 // (c) Tobias Faller 2017
 
-#ifndef _SHIFT_REGISTER
-#define _SHIFT_REGISTER
+#ifndef __SHIFT_REGISTER_H
+#define __SHIFT_REGISTER_H
 
 #include <stdint.h>
 
@@ -32,4 +32,4 @@ shift_register_set_leds (uint8_t state);
 __inline uint8_t
 shift_register_get_buttons (void);
 
-#endif //!_SHIFT_REGISTER
+#endif // !__SHIFT_REGISTER_H

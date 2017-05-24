@@ -1,8 +1,8 @@
 // (c) Tobias Faller 2017
 // (c) Tim Maffenb(e)ier 2017
 
-#ifndef _SHIFT_REGISTER_
-#define _SHIFT_REGISTER_
+#ifndef __SHIFT_REGISTER_H
+#define __SHIFT_REGISTER_H
 
 #include <msp430.h>
 #include <stdint.h>
@@ -36,4 +36,4 @@ __inline void set_shift_register_leds(uint8_t state);
  */
 __inline uint8_t get_shift_register_buttons(void);
 
-#endif //!_SHIFT_REGISTER_
+#endif // !__SHIFT_REGISTER_H

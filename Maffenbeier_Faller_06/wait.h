@@ -1,8 +1,8 @@
 // (c) Tobias Faller 2017
 // (c) Tim Maffenb(e)ier 2017
 
-#ifndef _WAIT_H_
-#define _WAIT_H_
+#ifndef __WAIT_H
+#define __WAIT_H
 
 #include <msp430.h>
 #include <stdint.h>
@@ -15,4 +15,4 @@
  */
 void wait(uint16_t time, void (*callback)(void));
 
-#endif
+#endif // !__WAIT_H

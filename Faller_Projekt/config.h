@@ -1,7 +1,7 @@
 // (c) Tobias Faller 2017
 
-#ifndef _CONFIG
-#define _CONFIG
+#ifndef __CONFIG_H
+#define __CONFIG_H
 
 #include "def.h"
 
@@ -9,4 +9,4 @@
 #define GAME_HEIGHT 22
 #define GAME_TOP_HIDDEN 2
 
-#endif //!_CONFIG
+#endif // !__CONFIG_H

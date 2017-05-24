@@ -5,10 +5,10 @@
 #include <msp430.h>
 #include <templateEMP.h>
 
-#include "def.h"
-#include "config.h"
+#include "inc/def.h"
+#include "inc/config.h"
 
-#include "tetris.h"
+#include "inc/tetris.h"
 
 // ----------------------------------------------------------------------------
 // Standard methods
@@ -21,6 +21,8 @@ __inline void loop(void);
 // Fields
 // ----------------------------------------------------------------------------
 
+// Store in large flash area
+#pragma location=0xC000
 static tetris_t tetris;
 
 int main(void) {

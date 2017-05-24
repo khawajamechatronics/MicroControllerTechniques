@@ -3,16 +3,12 @@
 #include <msp430.h>
 #include <stdint.h>
 
-#include "def.h"
-#include "config.h"
+#include "inc/def.h"
+#include "inc/config.h"
 
-#include "shift_register.h"
+#include "inc/shift_register.h"
 
-/**
- * Applies one clock pulse to both shift registers.
- */
-static __inline void
-shift_register_clock (void);
+#include "shift_register_p.h"
 
 __inline void
 shift_register_init (void)

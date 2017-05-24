@@ -3,30 +3,14 @@
 #include <msp430.h>
 #include <stdint.h>
 
-#include "def.h"
-#include "config.h"
+#include "inc/def.h"
+#include "inc/config.h"
 
-#include "timer.h"
+#include "inc/timer.h"
 
-/**
- * Returns if this timer exists.
- *
- * @param timer The timer to check
- * @return true if the value is a valid timer
- */
-static __inline bool_t
-timer_check (timer_t timer);
+#include "timer_p.h"
 
-/**
- * Returns if this divider exists.
- *
- * @param divider The divider to check
- * @return true if the value is a valid divider
- */
-static __inline bool_t
-timer_check_divider (timer_divider_t divider);
-
-static volatile void (*timer_callbacks)(void)[TIMER_COUNT];
+static volatile void (*timer_callbacks[TIMER_COUNT])(void);
 
 __inline void
 timer_init (timer_t timer)

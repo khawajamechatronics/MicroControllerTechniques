@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 
+#include "def.h"
 #include "config.h"
 
 // ----------------------------------------------------------------------------
@@ -18,7 +19,6 @@
 // ----------------------------------------------------------------------------
 
 typedef uint8_t field_item_t;
-typedef uint8_t bool_t;
 
 typedef struct
 {

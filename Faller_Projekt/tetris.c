@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "def.h"
+#include "config.h"
+
 #include "tetris.h"
 #include "timer.h"
 

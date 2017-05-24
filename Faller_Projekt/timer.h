@@ -3,6 +3,8 @@
 #ifndef _TIMER
 #define _TIMER
 
+#include <stdint.h>
+
 #include "def.h"
 #include "config.h"
 
@@ -77,7 +79,7 @@ timer_is_running (timer_t timer);
 
 /**
  * Sets the interval of the selected timer.
- * If the timer is running an interrupt might be created if the current couter
+ * If the timer is running an interrupt might be created if the current counter
  * is higher than new interval.
  *
  * @param timer The timer to set

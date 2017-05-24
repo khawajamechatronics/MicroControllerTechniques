@@ -5,13 +5,10 @@
 #include <msp430.h>
 #include <templateEMP.h>
 
+#include "def.h"
 #include "config.h"
+
 #include "tetris.h"
-
-// ----------------------------------------------------------------------------
-// Definitions
-// ----------------------------------------------------------------------------
-
 
 // ----------------------------------------------------------------------------
 // Standard methods
@@ -24,7 +21,7 @@ __inline void loop(void);
 // Fields
 // ----------------------------------------------------------------------------
 
-tetris_t tetris;
+static tetris_t tetris;
 
 int main(void) {
   // Initialize with uC without a predefined serial connection
@@ -41,6 +38,5 @@ __inline void setup() {
 }
 
 __inline void loop() {
-
 
 }

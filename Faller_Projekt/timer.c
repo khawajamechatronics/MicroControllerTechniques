@@ -1,6 +1,7 @@
 // (c) Tobias Faller 2017
 
 #include <msp430.h>
+#include <stdint.h>
 
 #include "def.h"
 #include "config.h"
@@ -13,7 +14,7 @@
  * @param timer The timer to check
  * @return true if the value is a valid timer
  */
-__inline bool_t
+static __inline bool_t
 timer_check (timer_t timer);
 
 /**
@@ -22,7 +23,7 @@ timer_check (timer_t timer);
  * @param divider The divider to check
  * @return true if the value is a valid divider
  */
-__inline bool_t
+static __inline bool_t
 timer_check_divider (timer_divider_t divider);
 
 static volatile void (*timer_callbacks)(void)[TIMER_COUNT];
@@ -177,13 +178,13 @@ __interrupt void timer_int1(void) {
     callback();
 }
 
-__inline bool_t
+static __inline bool_t
 timer_check (timer_t timer)
 {
   return (timer < TIMER_COUNT);
 }
 
-__inline bool_t
+static __inline bool_t
 timer_check_divider (timer_divider_t divider)
 {
   return (divider < TIMER_DIVIDER_COUNT);

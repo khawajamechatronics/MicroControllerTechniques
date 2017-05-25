@@ -115,6 +115,20 @@ timer_set_interval (timer_t timer, uint16_t interval)
   }
 }
 
+__inline uint16_t
+timer_get_interval (timer_t timer)
+{
+  if (!timer_check(timer))
+    return 0;
+
+  switch (timer) {
+  case TIMER_1:
+    return TA0CCR0;
+  case TIMER_2:
+    return TA1CCR0;
+  }
+}
+
 __inline void
 timer_set_divider (timer_t timer, timer_divider_t divider)
 {
@@ -134,6 +148,20 @@ timer_set_divider (timer_t timer, timer_divider_t divider)
   }
 }
 
+__inline timer_divider_t
+timer_get_divider (timer_t timer)
+{
+  if (!timer_check(timer))
+    return TIMER_DIVIDER_1;
+
+  switch (timer) {
+  case TIMER_1:
+    return (TA0CTL & (ID0 | ID1)) >> 6;
+  case TIMER_2:
+    return (TA1CTL & (ID0 | ID1)) >> 6;
+  }
+}
+
 __inline void
 timer_set_callback (timer_t timer, void (*callback)(void))
 {
@@ -145,7 +173,9 @@ timer_set_callback (timer_t timer, void (*callback)(void))
 }
 
 #pragma vector=TIMER0_A0_VECTOR
-__interrupt void timer_int0(void) {
+static __interrupt void
+timer_int0 (void)
+{
   TA0CCTL0 &= ~CCIFG; // Reset interrupt flag
 
   void (*callback)(void) = timer_callbacks[0];
@@ -154,7 +184,9 @@ __interrupt void timer_int0(void) {
 }
 
 #pragma vector=TIMER1_A0_VECTOR
-__interrupt void timer_int1(void) {
+static __interrupt void
+timer_int1 (void)
+{
   TA1CCTL0 &= ~CCIFG; // Reset interrupt flag
 
   void (*callback)(void) = timer_callbacks[0];

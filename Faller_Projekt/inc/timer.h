@@ -82,6 +82,14 @@ __inline void
 timer_set_interval (timer_t timer, uint16_t interval);
 
 /**
+ * Returns the current interval of the selected timer.
+ *
+ * @param timer The timer to get
+ */
+__inline uint16_t
+timer_get_interval (timer_t timer);
+
+/**
  * Sets the divider for the selected timer.
  *
  * @param timer The timer to modify
@@ -89,6 +97,14 @@ timer_set_interval (timer_t timer, uint16_t interval);
  */
 __inline void
 timer_set_divider (timer_t timer, timer_divider_t divider);
+
+/**
+ * Returns the current divider of the selected timer.
+ *
+ * @param timer The timer to get
+ */
+__inline timer_divider_t
+timer_get_divider (timer_t timer);
 
 /**
  * Sets the callback for the timer which is called on completion.

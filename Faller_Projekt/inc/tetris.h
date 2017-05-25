@@ -59,10 +59,8 @@ tetris_game_init (tetris_t *tetris);
 
 /**
  * Starts the tetris game and the needed timer.
- *
- * @param tetris The main tetris instance
  */
 __inline void
-tetris_game_start (tetris_t *tetris);
+tetris_game_start (void);
 
 #endif // !__TETRIS_H

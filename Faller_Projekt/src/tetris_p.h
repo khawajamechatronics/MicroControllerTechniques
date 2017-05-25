@@ -43,7 +43,7 @@ tetris_game_drop (tetris_t *tetris);
  *
  * @return The next tetromino
  */
-static tetromino_t
+static __inline tetromino_t
 tetris_pick_random_tetromino (void);
 
 /**
@@ -52,7 +52,13 @@ tetris_pick_random_tetromino (void);
  * @param field The field to clear full lines
  */
 static __inline void
-tetris_clear_full_lines (field_t *field, field_t *old_field);
+tetris_clear_full_lines (field_t *field);
+
+/**
+ * Callback method for drop timer.
+ */
+static void
+tetris_on_timer (void);
 
 // --- Field ------------------------------------------------------------------
 
@@ -131,6 +137,18 @@ static __inline findex_t
 tetris_field_item_get_index (findex_t x, findex_t y);
 
 /**
+ * Updates the item on the field.
+ * The updated flag is set if the new value and old value differ.
+ *
+ * @param field The field to update
+ * @param index The index of the item
+ * @param value The new value
+ */
+static __inline void
+tetris_field_item_set (field_t *field, findex_t index,
+                       field_item_t value);
+
+/**
  * Returns if the location on the tetris field is empty.
  *
  * @param item A pointer to the location on the field
@@ -154,5 +172,22 @@ tetris_field_item_set_updated (field_item_t *item);
  */
 static __inline void
 tetris_field_item_set_temp (field_item_t *item);
+
+
+/**
+ * Clears the updated flag of the item.
+ *
+ * @param item The item to update
+ */
+static __inline void
+tetris_field_item_clear_updated (field_item_t *item);
+
+/**
+ * Clears the temporary flag of the item.
+ *
+ * @param item The item to update
+ */
+static __inline void
+tetris_field_item_clear_temp (field_item_t *item);
 
 #endif // !__TETRIS_P_H

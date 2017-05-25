@@ -65,6 +65,8 @@ tetris_clear_full_lines (field_t *field, field_t *old_field);
 static __inline field_t*
 tetris_field_get_current (tetris_t *tetris);
 
+#ifndef TETRIS_NO_DOUBLE_BUFFERING
+
 /**
  * Returns the last game field which is currently transmitted.
  *
@@ -82,6 +84,18 @@ tetris_field_get_last (tetris_t *tetris);
  */
 static __inline void
 tetris_field_switch (tetris_t *tetris);
+
+#else
+
+/**
+ * Clears the update flags of all fields.
+ *
+ * @param tetris The main tetris instance
+ */
+static __inline void
+tetris_field_set_updated (tetris_t *tetris);
+
+#endif
 
 // --- Item -------------------------------------------------------------------
 

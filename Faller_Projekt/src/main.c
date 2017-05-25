@@ -22,15 +22,9 @@ __inline void setup(void);
 // Fields
 // ----------------------------------------------------------------------------
 
-// Store RX / TX buffer in flash area
-#pragma location=0xC000
 static uint8_t uart_r_buffer[UART_R_BUFFER_SIZE];
-
-#pragma location=(0xC000 + UART_R_BUFFER_SIZE)
 static uint8_t uart_t_buffer[UART_T_BUFFER_SIZE];
 
-// Store in large flash area
-#pragma location=(0xC000 + UART_BUFFER_SIZE)
 static tetris_t tetris;
 
 int main(void) {

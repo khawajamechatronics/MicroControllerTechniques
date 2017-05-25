@@ -13,7 +13,9 @@
 // Definitions
 // ----------------------------------------------------------------------------
 
+#ifndef TETRIS_NO_DOUBLE_BUFFERING
 #define TETRIS_BUFFER_COUNT 2
+#endif
 
 // ----------------------------------------------------------------------------
 // Types
@@ -29,9 +31,13 @@ typedef struct
 
 typedef struct
 {
+#ifndef TETRIS_NO_DOUBLE_BUFFERING
   field_t buffer[TETRIS_BUFFER_COUNT];
   uint8_t last_buffer;
   uint8_t current_buffer;
+#else
+  field_t buffer;
+#endif
 
   tetromino_t current_tetromino;
   tetromino_t next_tetromino;

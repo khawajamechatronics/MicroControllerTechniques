@@ -17,15 +17,21 @@
 __inline void
 tetris_game_init (tetris_t *tetris)
 {
+#ifndef TETRIS_NO_DOUBLE_BUFFERING
   tetris->current_buffer = 0;
   tetris->last_buffer = 0;
+#endif
 
   tetris->current_tetromino = tetris_pick_random_tetromino();
   tetris->next_tetromino = tetris_pick_random_tetromino();
 
   tetris->score = 0;
 
+#ifndef TETRIS_NO_DOUBLE_BUFFERING
   memset(tetris->buffer, '\0', sizeof(field_t) * TETRIS_BUFFER_COUNT);
+#else
+  memset(&tetris->buffer, '\0', sizeof(field_t));
+#endif
 }
 
 __inline void
@@ -92,6 +98,8 @@ tetris_pick_random_tetromino (void)
 
 // --- Field ------------------------------------------------------------------
 
+#ifndef TETRIS_NO_DOUBLE_BUFFERING
+
 static __inline field_t*
 tetris_field_get_current (tetris_t *tetris)
 {
@@ -122,6 +130,28 @@ tetris_field_switch (tetris_t *tetris) {
     new_field[index] = old_field[index] & ~TETRIS_FIELD_UPDATED;
   }
 }
+
+#else
+
+static __inline field_t*
+tetris_field_get_current (tetris_t *tetris)
+{
+  return &tetris->buffer;
+}
+
+static __inline void
+tetris_field_set_updated (tetris_t *tetris) {
+  field_t *field = &tetris->buffer;
+
+  findex_t index;
+    for (index = GAME_WIDTH * GAME_HEIGHT - 1; index < GAME_WIDTH * GAME_HEIGHT;
+        index--) {
+      // Remove updated flags
+      field->data[index] &= ~TETRIS_FIELD_UPDATED;
+    }
+}
+
+#endif
 
 // --- Item -------------------------------------------------------------------
 

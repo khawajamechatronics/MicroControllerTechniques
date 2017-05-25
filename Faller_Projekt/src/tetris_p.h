@@ -31,20 +31,20 @@ typedef uint16_t findex_t;
 // --- Game -------------------------------------------------------------------
 
 /**
+ * Updates the game field and drops the tetromino.
+ *
+ * @param tetris The main tetris instance
+ */
+static __inline void
+tetris_game_drop (tetris_t *tetris);
+
+/**
  * Returns a random tetromino.
  *
  * @return The next tetromino
  */
 static tetromino_t
 tetris_pick_random_tetromino (void);
-
-/**
- * Updates the game field and drops the tetromino.
- *
- * @param tetris The main tetris instance
- */
-static __inline void
-tetris_step_field (tetris_t *tetris);
 
 /**
  * Clears all full lines in the field and drops all lines above.
@@ -63,7 +63,7 @@ tetris_clear_full_lines (field_t *field, field_t *old_field);
  * @return A pointer to the current game field
  */
 static __inline field_t*
-tetris_get_current_field (tetris_t *tetris);
+tetris_field_get_current (tetris_t *tetris);
 
 /**
  * Returns the last game field which is currently transmitted.
@@ -72,7 +72,7 @@ tetris_get_current_field (tetris_t *tetris);
  * @return A pointer to the last game field
  */
 static __inline field_t*
-tetris_get_last_field (tetris_t *tetris);
+tetris_field_get_last (tetris_t *tetris);
 
 /**
  * Switches the current game field to enable updating the display while
@@ -81,7 +81,7 @@ tetris_get_last_field (tetris_t *tetris);
  * @param tetris The main tetris instance
  */
 static __inline void
-tetris_switch_field (tetris_t *tetris);
+tetris_field_switch (tetris_t *tetris);
 
 // --- Item -------------------------------------------------------------------
 
@@ -123,7 +123,7 @@ tetris_field_item_get_index (findex_t x, findex_t y);
  * @return true if the spot is occupied
  */
 static __inline bool_t
-tetris_field_item_is_empty (const field_item_t *item);
+tetris_field_item_is_empty (field_item_t *item);
 
 /**
  * Sets the updated flag of the item.

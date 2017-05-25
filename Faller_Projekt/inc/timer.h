@@ -31,7 +31,8 @@ typedef enum
 // ----------------------------------------------------------------------------
 
 /**
- * Initializes the selected timer.
+ * Initializes the selected timer. The timer is sourced from the 1MHz SMCLK
+ * signal.
  *
  * @param timer The timer to initialize
  */

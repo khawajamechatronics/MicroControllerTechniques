@@ -4,10 +4,12 @@
 
 #include <msp430.h>
 #include <templateEMP.h>
+#include <stdint.h>
 
 #include "inc/def.h"
 #include "inc/config.h"
 
+#include "inc/uart.h"
 #include "inc/tetris.h"
 
 // ----------------------------------------------------------------------------
@@ -15,14 +17,20 @@
 // ----------------------------------------------------------------------------
 
 __inline void setup(void);
-__inline void loop(void);
 
 // ----------------------------------------------------------------------------
 // Fields
 // ----------------------------------------------------------------------------
 
-// Store in large flash area
+// Store RX / TX buffer in flash area
 #pragma location=0xC000
+static uint8_t uart_r_buffer[UART_R_BUFFER_SIZE];
+
+#pragma location=(0xC000 + UART_R_BUFFER_SIZE)
+static uint8_t uart_t_buffer[UART_T_BUFFER_SIZE];
+
+// Store in large flash area
+#pragma location=(0xC000 + UART_BUFFER_SIZE)
 static tetris_t tetris;
 
 int main(void) {
@@ -31,14 +39,28 @@ int main(void) {
 
   setup();
 
-  for (;;)
-    loop();
+  // Go into low power mode 0
+  __bis_SR_register(LPM0_bits);
 }
 
 __inline void setup() {
-  tetris_init_game(&tetris);
-}
+  // Initialize unused ports
+  // (set as input without pull-up / -down)
+  P1IE = 0;
+  P1SEL = 0;
+  P1SEL2 = 0;
+  P1DIR = 0;
+  P1OUT = 0;
 
-__inline void loop() {
+  P3SEL = 0;
+  P3SEL2 = 0;
+  P3DIR = 0;
+  P3OUT = 0;
 
+  // Initialize the UART connection
+  uart_init(uart_r_buffer, UART_R_BUFFER_SIZE,
+            uart_t_buffer, UART_T_BUFFER_SIZE);
+
+  // Initialize and start the game
+  tetris_game_init(&tetris);
 }

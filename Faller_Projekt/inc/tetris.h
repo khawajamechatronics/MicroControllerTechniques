@@ -49,7 +49,7 @@ typedef struct
  * @param tetris The main tetris instance to initialize
  */
 __inline void
-tetris_init_game (tetris_t *tetris);
+tetris_game_init (tetris_t *tetris);
 
 /**
  * Starts the tetris game and the needed timer.
@@ -57,6 +57,6 @@ tetris_init_game (tetris_t *tetris);
  * @param tetris The main tetris instance
  */
 __inline void
-tetris_start_game (tetris_t *tetris);
+tetris_game_start (tetris_t *tetris);
 
 #endif // !__TETRIS_H

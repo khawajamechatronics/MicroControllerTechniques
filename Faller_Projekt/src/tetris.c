@@ -15,7 +15,7 @@
 // --- Game -------------------------------------------------------------------
 
 __inline void
-tetris_init_game (tetris_t *tetris)
+tetris_game_init (tetris_t *tetris)
 {
   tetris->current_buffer = 0;
   tetris->last_buffer = 0;
@@ -29,13 +29,13 @@ tetris_init_game (tetris_t *tetris)
 }
 
 __inline void
-tetris_start_game (tetris_t *tetris)
+tetris_game_start (tetris_t *tetris)
 {
 
 }
 
 static __inline void
-tetris_step_game(tetris_t *tetris)
+tetris_game_drop (tetris_t *tetris)
 {
   field_t *current_field = tetris_get_current_field(tetris);
   field_t *old_field = tetris_get_last_field(tetris);
@@ -43,12 +43,6 @@ tetris_step_game(tetris_t *tetris)
   tetris_clear_full_lines(current_field, old_field);
 }
 
-static tetromino_t
-tetris_pick_random_tetromino (void)
-{
-  // Use the default random number generator
-  return (tetromino_t) (rand() % 7);
-}
 static __inline void
 tetris_clear_full_lines (field_t *field, field_t *old_field)
 {
@@ -89,27 +83,44 @@ next_row:
   }
 }
 
+static tetromino_t
+tetris_pick_random_tetromino (void)
+{
+  // Use the default random number generator
+  return (tetromino_t) (rand() % 7);
+}
 
 // --- Field ------------------------------------------------------------------
 
 static __inline field_t*
-tetris_get_current_field (tetris_t *tetris)
+tetris_field_get_current (tetris_t *tetris)
 {
   return &tetris->buffer[tetris->current_buffer];
 }
 
 static __inline field_t*
-tetris_get_last_field (tetris_t *tetris)
+tetris_field_get_last (tetris_t *tetris)
 {
   return &tetris->buffer[tetris->last_buffer];
 }
 
 static __inline void
-tetris_switch_field (tetris_t *tetris) {
+tetris_field_switch (tetris_t *tetris) {
+  tetris->last_buffer = tetris->current_buffer;
   tetris->current_buffer++;
 
   if (tetris->current_buffer >= TETRIS_BUFFER_COUNT)
     tetris->current_buffer = 0;
+
+  field_item_t *old_field = tetris_field_get_last(tetris)->data;
+  field_item_t *new_field = tetris_field_get_current(tetris)->data;
+
+  findex_t index;
+  for (index = GAME_WIDTH * GAME_HEIGHT - 1; index < GAME_WIDTH * GAME_HEIGHT;
+      index--) {
+    // Copy old field into new one and remove updated flags
+    new_field[index] = old_field[index] & ~TETRIS_FIELD_UPDATED;
+  }
 }
 
 // --- Item -------------------------------------------------------------------
@@ -146,27 +157,21 @@ tetris_field_item_get_value (field_item_t *item)
 }
 
 static __inline void
-tetris_field_item_set (field_t *field, field_t *old_field, findex_t index,
+tetris_field_item_set (field_t *field, findex_t index,
                        field_item_t value)
 {
-  bool_t changed = (field == old_field);
-
-  if (!changed) {
-    field_item_t *old_item = tetris_field_item_get(old_field, index);
-    changed = (tetris_field_item_get_value(old_item) != value);
-  }
-
   field_item_t *item = tetris_field_item_get(field, index);
-  *item = value;
+  bool_t changed = (tetris_field_item_get_value(item) != value);
 
   if (!changed)
     return;
 
-  *item |= TETRIS_FIELD_UPDATED;
+  // Update value
+  *item = value | TETRIS_FIELD_UPDATED;
 }
 
 static __inline bool_t
-tetris_field_item_is_empty (const field_item_t *item)
+tetris_field_item_is_empty (field_item_t *item)
 {
   return (tetris_field_item_get_tetromino(item) == TETRIS_FIELD_EMPTY);
 }

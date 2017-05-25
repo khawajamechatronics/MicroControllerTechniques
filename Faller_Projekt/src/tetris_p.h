@@ -39,6 +39,14 @@ static __inline void
 tetris_game_drop (tetris_t *tetris);
 
 /**
+ * Sends the current field to the user including score and next tetrominos.
+ *
+ * @param tetris The main tetris instance
+ */
+static void
+tetris_game_send (tetris_t *tetris);
+
+/**
  * Returns a random tetromino.
  *
  * @return The next tetromino
@@ -89,7 +97,7 @@ tetris_field_get_last (tetris_t *tetris);
  * @param tetris The main tetris instance
  */
 static __inline void
-tetris_field_switch (tetris_t *tetris);
+tetris_field_update (tetris_t *tetris);
 
 #else
 
@@ -99,7 +107,7 @@ tetris_field_switch (tetris_t *tetris);
  * @param tetris The main tetris instance
  */
 static __inline void
-tetris_field_set_updated (tetris_t *tetris);
+tetris_field_update (tetris_t *tetris);
 
 #endif
 
@@ -189,5 +197,8 @@ tetris_field_item_clear_updated (field_item_t *item);
  */
 static __inline void
 tetris_field_item_clear_temp (field_item_t *item);
+
+static __inline tetromino_t
+tetris_field_item_get_tetromino (field_item_t *item);
 
 #endif // !__TETRIS_P_H

@@ -42,6 +42,10 @@ uart_init (uint8_t *r_buffer, uint16_t r_size,
   UCA0IRTCTL = 0;
   UCA0IRRCTL = 0;
   UCA0ABCTL = 0;
+  UCA0BR0 = 8; // Select 8 as prescaler for 115200 baud (page 424)
+  UCA0BR1 = 0;
+  UCA0MCTL = UCBRS_6; // Select 6 as modulation for 115200 baud
+
   IE2 |= UCA0TXIE | UCA0RXIE; // Enable receive / transmit interrupt
 }
 

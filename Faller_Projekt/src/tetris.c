@@ -51,7 +51,9 @@ tetris_game_start (void)
 static void
 tetris_on_timer (void)
 {
+  tetris_field_update(tetris_inst);
   tetris_game_drop(tetris_inst);
+  tetris_game_send(tetris_inst);
 }
 
 static __inline void
@@ -134,7 +136,7 @@ tetris_field_get_last (tetris_t *tetris)
 }
 
 static __inline void
-tetris_field_switch (tetris_t *tetris) {
+tetris_field_update (tetris_t *tetris) {
   tetris->last_buffer = tetris->current_buffer;
   tetris->current_buffer++;
 
@@ -160,7 +162,7 @@ tetris_field_get_current (tetris_t *tetris)
 }
 
 static __inline void
-tetris_field_set_updated (tetris_t *tetris) {
+tetris_field_update (tetris_t *tetris) {
   field_t *field = &tetris->buffer;
 
   // Clear updated flags

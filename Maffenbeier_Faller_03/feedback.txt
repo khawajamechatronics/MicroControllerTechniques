@@ -1,3 +1,6 @@
+Tobias Faller
+Tim Maffenbeier
+
 Feedback
 ========
 - The LEDs connected to the shift register are quite bright

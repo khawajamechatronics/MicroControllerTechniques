@@ -1,3 +1,6 @@
+Tobias Faller
+Tim Maffenbeier
+
 Feedback
 ========
 - Color detection is really hard due to non-working serial connection.

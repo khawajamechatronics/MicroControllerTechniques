@@ -12,7 +12,7 @@
 
 static void (*timer_callbacks[TIMER_COUNT])(void);
 
-__inline void
+void
 timer_init (timer_t timer)
 {
   if (!timer_check(timer))
@@ -33,7 +33,7 @@ timer_init (timer_t timer)
   }
 }
 
-__inline void
+void
 timer_start (timer_t timer)
 {
   if (!timer_check(timer))
@@ -51,7 +51,7 @@ timer_start (timer_t timer)
   }
 }
 
-__inline void
+void
 timer_stop (timer_t timer)
 {
   if (!timer_check(timer))
@@ -69,7 +69,7 @@ timer_stop (timer_t timer)
   }
 }
 
-__inline void
+void
 timer_reset (timer_t timer)
 {
   if (!timer_check(timer))
@@ -85,7 +85,7 @@ timer_reset (timer_t timer)
   }
 }
 
-__inline bool_t
+bool_t
 timer_is_running (timer_t timer)
 {
   if (!timer_check(timer))
@@ -101,7 +101,7 @@ timer_is_running (timer_t timer)
   }
 }
 
-__inline void
+void
 timer_set_interval (timer_t timer, uint16_t interval)
 {
   if (!timer_check(timer))
@@ -117,7 +117,7 @@ timer_set_interval (timer_t timer, uint16_t interval)
   }
 }
 
-__inline uint16_t
+uint16_t
 timer_get_interval (timer_t timer)
 {
   if (!timer_check(timer))
@@ -133,7 +133,7 @@ timer_get_interval (timer_t timer)
   }
 }
 
-__inline void
+void
 timer_set_divider (timer_t timer, timer_divider_t divider)
 {
   if (!timer_check(timer))
@@ -152,7 +152,7 @@ timer_set_divider (timer_t timer, timer_divider_t divider)
   }
 }
 
-__inline timer_divider_t
+timer_divider_t
 timer_get_divider (timer_t timer)
 {
   if (!timer_check(timer))
@@ -168,7 +168,7 @@ timer_get_divider (timer_t timer)
   }
 }
 
-__inline void
+void
 timer_set_callback (timer_t timer, void (*callback)(void))
 {
   if (!timer_check(timer))
@@ -182,9 +182,11 @@ timer_set_callback (timer_t timer, void (*callback)(void))
 __interrupt void
 timer_int0 (void)
 {
+  void (*callback)(void);
+
   TA0CCTL0 &= ~CCIFG; // Reset interrupt flag
 
-  void (*callback)(void) = timer_callbacks[0];
+  callback = timer_callbacks[0];
   if (callback != 0)
     callback();
 }
@@ -193,21 +195,11 @@ timer_int0 (void)
 __interrupt void
 timer_int1 (void)
 {
+  void (*callback)(void);
+
   TA1CCTL0 &= ~CCIFG; // Reset interrupt flag
 
-  void (*callback)(void) = timer_callbacks[1];
+  callback = timer_callbacks[1];
   if (callback != 0)
     callback();
-}
-
-static __inline bool_t
-timer_check (timer_t timer)
-{
-  return (timer < TIMER_COUNT);
-}
-
-static __inline bool_t
-timer_check_divider (timer_divider_t divider)
-{
-  return (divider < TIMER_DIVIDER_COUNT);
 }

@@ -1,7 +1,6 @@
 // (c) Tobias Faller 2017
 
 #include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
 
 #include "inc/def.h"
@@ -9,6 +8,7 @@
 
 #include "inc/tetris.h"
 #include "inc/timer.h"
+#include "inc/util.h"
 
 #include "tetris_p.h"
 
@@ -16,7 +16,7 @@ static tetris_t *tetris_inst;
 
 // --- Game -------------------------------------------------------------------
 
-__inline void
+void
 tetris_game_init (tetris_t *tetris)
 {
   tetris->current_tetromino = tetris_pick_random_tetromino();
@@ -24,12 +24,12 @@ tetris_game_init (tetris_t *tetris)
 
   tetris->score = 0;
 
-  memset(&tetris->buffer, '\0', sizeof(field_t));
+  memset(&tetris->buffer, 0, sizeof(field_t));
 
   tetris_inst = tetris;
 }
 
-__inline void
+void
 tetris_game_start (void)
 {
   timer_init(TIMER_1);
@@ -52,7 +52,7 @@ tetris_on_timer (void)
 }
 
 static __inline void
-tetris_timer_speedup (void)
+tetris_game_speedup (void)
 {
   // Take 7 / 8 of the original interval
   uint16_t interval = timer_get_interval(TIMER_1);
@@ -67,7 +67,7 @@ tetris_game_drop (tetris_t *tetris)
   // TODO: Check for tetromino collision
 
   uint8_t cleared = tetris_field_clear_full_lines(current_field);
-  tetris_game_update_score(cleared);
+  tetris_game_update_score(tetris, cleared);
 }
 
 static __inline uint8_t
@@ -118,6 +118,21 @@ tetris_pick_random_tetromino (void)
 {
   // Use the default random number generator
   return (tetromino_t) (rand() % 7);
+}
+
+static __inline void
+tetris_game_send (tetris_t *tetris)
+{
+
+}
+
+static void
+tetris_game_update_score (tetris_t *tetris, uint8_t cleared)
+{
+  uint16_t last_level = tetris->level;
+
+  if (tetris->level != last_level)
+    tetris_game_speedup();
 }
 
 // --- Field ------------------------------------------------------------------

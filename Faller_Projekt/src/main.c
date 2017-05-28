@@ -12,12 +12,16 @@
 #include "inc/shift_register.h"
 #include "inc/uart.h"
 #include "inc/tetris.h"
+#include "inc/timer.h"
+#include "inc/main.h"
 
 // ----------------------------------------------------------------------------
-// Standard methods
+// Standard Methods
 // ----------------------------------------------------------------------------
 
-__inline void setup(void);
+__attribute__((always_inline))
+static __inline void
+setup (void);
 
 // ----------------------------------------------------------------------------
 // Fields
@@ -28,7 +32,9 @@ static uint8_t uart_t_buffer[UART_T_BUFFER_SIZE];
 
 static tetris_t tetris;
 
-int main(void) {
+int
+main (void)
+{
   // Initialize with uC without a predefined serial connection
   initMSP();
 
@@ -38,7 +44,10 @@ int main(void) {
   __bis_SR_register(CPUOFF);
 }
 
-__inline void setup() {
+__attribute__((always_inline))
+static __inline void
+setup (void)
+{
   // Initialize unused port 1
   // (set as input without pull-up / -down)
   P1IE = 0;
@@ -63,15 +72,18 @@ __inline void setup() {
   // Initialize and start the game
   tetris_game_init(&tetris);
 
+  uart_set_receive_callback(&main_uart_received);
+
   // Print a welcome message each second (Wait for terminal connection)
   timer_init(TIMER_1);
   timer_set_divider(TIMER_1, TIMER_DIVIDER_8);
   timer_set_interval(TIMER_1, 0xF424); // 0.5 second
-  timer_set_callback(TIMER_1, &send_welcome_message);
+  timer_set_callback(TIMER_1, &main_send_welcome);
   timer_start(TIMER_1);
 }
 
-void send_welcome_message (void)
+static void
+main_send_welcome (void)
 {
   uart_send_terminal_init();
   uart_send_cls();
@@ -79,7 +91,17 @@ void send_welcome_message (void)
   uart_send_string("Welcome to Tetris. Press a key to continue ...");
 }
 
-void start_game (void)
+static void
+main_uart_received (uart_buffer_t *buffer)
+{
+  uart_set_receive_callback(0);
+  uart_buffer_clear(buffer);
+
+  main_start_game();
+}
+
+static void
+main_start_game (void)
 {
   timer_stop(TIMER_1);
   tetris_game_start();

@@ -111,6 +111,12 @@ static void
 tetris_game_send (tetris_t *tetris);
 
 /**
+ * Increases the drop speed of all tetrominos.
+ */
+static __inline void
+tetris_game_speedup (void);
+
+/**
  * Returns a random tetromino.
  *
  * @return The next tetromino
@@ -125,13 +131,22 @@ tetris_pick_random_tetromino (void);
  * @return Number of cleared lines
  */
 static __inline uint8_t
-tetris_clear_full_lines (field_t *field);
+tetris_field_clear_full_lines (field_t *field);
 
 /**
  * Callback method for drop timer.
  */
 static void
 tetris_on_timer (void);
+
+/**
+ * Updates the current score.
+ *
+ * @param tetris The main tetris instance
+ * @param cleared The number of cleared lines with the used tetromino
+ */
+static void
+tetris_game_update_score (tetris_t *tetris, uint8_t cleared);
 
 // --- Field ------------------------------------------------------------------
 
@@ -239,6 +254,12 @@ tetris_field_item_clear_updated (field_item_t *item);
 static __inline void
 tetris_field_item_clear_temp (field_item_t *item);
 
+/**
+ * Returns
+ *
+ * @param item
+ * @return
+ */
 static __inline tetromino_t
 tetris_field_item_get_tetromino (field_item_t *item);
 

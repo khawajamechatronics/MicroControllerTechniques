@@ -21,7 +21,7 @@ static uart_t uart;
 // Methods
 // ----------------------------------------------------------------------------
 
-__inline void
+void
 uart_init (uint8_t *r_buffer, uint16_t r_size,
            uint8_t *t_buffer, uint16_t t_size)
 {
@@ -57,13 +57,13 @@ uart_init (uint8_t *r_buffer, uint16_t r_size,
   IE2 |= UCA0TXIE | UCA0RXIE; // Enable receive / transmit interrupt
 }
 
-__inline void
+void
 uart_set_receive_callback (void (*callback)(uart_buffer_t *buffer))
 {
   uart.r_callback = callback;
 }
 
-__inline void
+void
 uart_send (uint8_t c)
 {
   if (uart_buffer_is_full(&uart.t_buffer)) {
@@ -86,7 +86,7 @@ uart_send (uint8_t c)
   }
 }
 
-__inline void
+void
 uart_send_move_to (uint8_t v, uint8_t h)
 {
   uart_send(UART_ESC);
@@ -97,14 +97,14 @@ uart_send_move_to (uint8_t v, uint8_t h)
   uart_send('H');
 }
 
-__inline void
+void
 uart_send_string (char *buffer)
 {
   for (; buffer != '\0'; ++buffer)
     uart_send(*buffer);
 }
 
-__inline void
+void
 uart_send_number_u8 (uint8_t value, bool_t leading_zero)
 {
   uint8_t v;
@@ -120,7 +120,7 @@ uart_send_number_u8 (uint8_t value, bool_t leading_zero)
   uart_send('0' + v);
 }
 
-__inline void
+void
 uart_send_number_u16 (uint16_t value, bool_t leading_zero)
 {
   uint8_t v;
@@ -142,6 +142,33 @@ uart_send_number_u16 (uint16_t value, bool_t leading_zero)
     uart_send(v);
 
   uart_send('0' + v);
+}
+
+void
+uart_send_cls (void)
+{
+  uart_send(UART_ESC);
+  uart_send_string("[2J");
+}
+
+void
+uart_send_terminal_init (void)
+{
+  // Set number of columns to 80
+  uart_send(UART_ESC);
+  uart_send_string("[?3l");
+
+  // Reset auto-wrap mode
+  uart_send(UART_ESC);
+  uart_send_string("[?7l");
+
+  // Reset auto-repeat mode
+  uart_send(UART_ESC);
+  uart_send_string("[?8l");
+
+  // Reset interlacing mode
+  uart_send(UART_ESC);
+  uart_send_string("[?9l");
 }
 
 #pragma vector=USCIAB0TX_VECTOR
@@ -176,8 +203,7 @@ uart_int_rx (void)
 
   if (uart_buffer_is_full(&uart.r_buffer)) {
     // An buffer overflow occurred -> Discard all old data
-   uart.r_buffer.start = 0;
-   uart.r_buffer.fill = 0;
+    uart_buffer_clear(&uart.r_buffer);
   }
 
   uart_buffer_enqueue(&uart.r_buffer, received_char);

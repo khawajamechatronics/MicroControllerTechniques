@@ -29,6 +29,7 @@ typedef struct {
  * @param buffer The buffer to check
  * @return true if the buffer is full
  */
+__attribute__((always_inline))
 __inline bool_t
 uart_buffer_is_full (uart_buffer_t *buffer);
 
@@ -38,6 +39,7 @@ uart_buffer_is_full (uart_buffer_t *buffer);
  * @param buffer The buffer to check
  * @return true if the buffer is empty
  */
+__attribute__((always_inline))
 __inline bool_t
 uart_buffer_is_empty (uart_buffer_t *buffer);
 
@@ -47,6 +49,7 @@ uart_buffer_is_empty (uart_buffer_t *buffer);
  * @param buffer The buffer to use
  * @param value The value to append
  */
+__attribute__((always_inline))
 __inline void
 uart_buffer_enqueue (uart_buffer_t *buffer, uint8_t value);
 
@@ -56,6 +59,7 @@ uart_buffer_enqueue (uart_buffer_t *buffer, uint8_t value);
  * @param buffer The buffer to use
  * @return The first value in the buffer
  */
+__attribute__((always_inline))
 __inline uint8_t
 uart_buffer_dequeue (uart_buffer_t *buffer);
 
@@ -66,6 +70,7 @@ uart_buffer_dequeue (uart_buffer_t *buffer);
  * @param index The index to fetch
  * @return The pointer to the selected element
  */
+__attribute__((always_inline))
 __inline uint8_t*
 uart_buffer_get_at (uart_buffer_t *buffer, uint16_t index);
 
@@ -78,6 +83,7 @@ uart_buffer_get_at (uart_buffer_t *buffer, uint16_t index);
  * @param p The pointer to the current location
  * @return The pointer to the next buffer location
  */
+__attribute__((always_inline))
 __inline uint8_t*
 uart_buffer_get_next (uart_buffer_t *buffer, uint8_t *p);
 
@@ -87,7 +93,101 @@ uart_buffer_get_next (uart_buffer_t *buffer, uint8_t *p);
  * @param buffer The buffer to use
  * @return The number of characters in the buffer
  */
+__attribute__((always_inline))
 __inline uint16_t
 uart_buffer_get_fill (uart_buffer_t *buffer);
+
+
+/**
+ * Clears the buffer and resets the limits.
+ *
+ * @param buffer The buffer to use
+ */
+__attribute__((always_inline))
+__inline void
+uart_buffer_clear (uart_buffer_t *buffer);
+
+// ----------------------------------------------------------------------------
+// Implementations
+// ----------------------------------------------------------------------------
+
+__attribute__((always_inline))
+__inline bool_t
+uart_buffer_is_full (uart_buffer_t *buffer)
+{
+  return (buffer->fill >= buffer->buffer_size);
+}
+
+__attribute__((always_inline))
+__inline bool_t
+uart_buffer_is_empty (uart_buffer_t *buffer)
+{
+  return (buffer->fill == 0);
+}
+
+__attribute__((always_inline))
+__inline void
+uart_buffer_enqueue (uart_buffer_t *buffer, uint8_t value)
+{
+  uint8_t *p = buffer->buffer + buffer->start + buffer->fill;
+
+  while (p >= (buffer->buffer + buffer->buffer_size))
+      p -= buffer->buffer_size;
+
+  *p = value;
+  buffer->fill++;
+}
+
+__attribute__((always_inline))
+__inline uint8_t
+uart_buffer_dequeue (uart_buffer_t *buffer)
+{
+  uint8_t value = buffer->buffer[buffer->start];
+
+  buffer->start++;
+  while (buffer->start >= buffer->buffer_size)
+      buffer->start -= buffer->buffer_size;
+
+  return value;
+}
+
+__attribute__((always_inline))
+__inline uint8_t*
+uart_buffer_get_at (uart_buffer_t *buffer, uint16_t index)
+{
+  index += buffer->start;
+  while (index >= buffer->buffer_size)
+    index -= buffer->buffer_size;
+
+  return buffer->buffer + index;
+}
+
+__attribute__((always_inline))
+__inline uint8_t*
+uart_buffer_get_next (uart_buffer_t *buffer, uint8_t *p)
+{
+  p++; // Forward pointer
+
+  // Check upper bound
+  while (p >= (buffer->buffer + buffer->buffer_size))
+    p -= buffer->buffer_size;
+
+  return p;
+}
+
+__attribute__((always_inline))
+__inline uint16_t
+uart_buffer_get_fill (uart_buffer_t *buffer)
+{
+  return buffer->fill;
+}
+
+__attribute__((always_inline))
+__inline void
+uart_buffer_clear (uart_buffer_t *buffer)
+{
+  buffer->fill = 0;
+  buffer->start = 0;
+}
 
 #endif // !__UART_BUFFER_H

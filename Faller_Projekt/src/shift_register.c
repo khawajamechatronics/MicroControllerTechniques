@@ -27,10 +27,11 @@ shift_register_init (void)
 __inline void
 shift_register_set_leds (uint8_t state)
 {
+  uint8_t i;
+
   // Enable shifting for shift register 2
   P2OUT = (P2OUT & ~0x03) | BIT0;
 
-  uint8_t i;
   for (i = 0; i < 4; i++) { // Write each LED
     if ((state >> i) & 0x01) {
       P2OUT |= BIT6; // Set LED to high
@@ -48,6 +49,7 @@ shift_register_set_leds (uint8_t state)
 __inline uint8_t
 shift_register_get_buttons (void)
 {
+  uint8_t i;
   uint8_t button_state = 0;
 
   // Load button data into shift register 1
@@ -57,7 +59,6 @@ shift_register_get_buttons (void)
   // Enable shifting for shift register 1
   P2OUT &= ~BIT3;
 
-  uint8_t i;
   for (i = 4; i > 0; i--) {
     if (i != 4)
       shift_register_clock(); // Read next value
@@ -69,12 +70,4 @@ shift_register_get_buttons (void)
   P2OUT &= ~0x0C;
 
   return button_state;
-}
-
-static __inline void
-shift_register_clock (void)
-{
-  // Creates one clock pulse
-  P2OUT |= BIT4; // Set clock to high
-  P2OUT &= ~BIT4; // Set clock to low
 }

@@ -36,7 +36,7 @@ typedef enum
  *
  * @param timer The timer to initialize
  */
-__inline void
+void
 timer_init (timer_t timer);
 
 /**
@@ -44,7 +44,7 @@ timer_init (timer_t timer);
  *
  * @param timer The timer to start
  */
-__inline void
+void
 timer_start (timer_t timer);
 
 /**
@@ -52,7 +52,7 @@ timer_start (timer_t timer);
  *
  * @param timer The timer to stop
  */
-__inline void
+void
 timer_stop (timer_t timer);
 
 /**
@@ -60,7 +60,7 @@ timer_stop (timer_t timer);
  *
  * @param timer The timer to reset
  */
-__inline void
+void
 timer_reset (timer_t timer);
 
 /**
@@ -69,7 +69,7 @@ timer_reset (timer_t timer);
  * @param timer The timer to check
  * @return true if the timer is running
  */
-__inline bool_t
+bool_t
 timer_is_running (timer_t timer);
 
 /**
@@ -79,7 +79,7 @@ timer_is_running (timer_t timer);
  *
  * @param timer The timer to set
  */
-__inline void
+void
 timer_set_interval (timer_t timer, uint16_t interval);
 
 /**
@@ -87,7 +87,7 @@ timer_set_interval (timer_t timer, uint16_t interval);
  *
  * @param timer The timer to get
  */
-__inline uint16_t
+uint16_t
 timer_get_interval (timer_t timer);
 
 /**
@@ -96,7 +96,7 @@ timer_get_interval (timer_t timer);
  * @param timer The timer to modify
  * @param divider The new divider to use
  */
-__inline void
+void
 timer_set_divider (timer_t timer, timer_divider_t divider);
 
 /**
@@ -104,7 +104,7 @@ timer_set_divider (timer_t timer, timer_divider_t divider);
  *
  * @param timer The timer to get
  */
-__inline timer_divider_t
+timer_divider_t
 timer_get_divider (timer_t timer);
 
 /**
@@ -114,7 +114,7 @@ timer_get_divider (timer_t timer);
  * @param timer The timer to modify
  * @param callback The callback which is called when the timer is triggered
  */
-__inline void
+void
 timer_set_callback (timer_t timer, void (*callback)(void));
 
 #endif // !__TIMER_H

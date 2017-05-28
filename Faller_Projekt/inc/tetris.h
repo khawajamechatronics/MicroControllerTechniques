@@ -41,6 +41,7 @@ typedef struct
 
   uint32_t score;
   uint16_t lines;
+  uint16_t level;
 
   uint8_t score_factor;
 } tetris_t;
@@ -54,13 +55,13 @@ typedef struct
  *
  * @param tetris The main tetris instance to initialize
  */
-__inline void
+void
 tetris_game_init (tetris_t *tetris);
 
 /**
  * Starts the tetris game and the needed timer.
  */
-__inline void
+void
 tetris_game_start (void);
 
 #endif // !__TETRIS_H

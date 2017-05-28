@@ -11,7 +11,7 @@
 /**
  * Initializes the shift register port.
  */
-__inline void
+void
 shift_register_init (void);
 
 /**
@@ -20,7 +20,7 @@ shift_register_init (void);
  *
  * @param state The state to write out
  */
-__inline void
+void
 shift_register_set_leds (uint8_t state);
 
 /**
@@ -29,7 +29,7 @@ shift_register_set_leds (uint8_t state);
  *
  * @return The binary value of each button
  */
-__inline uint8_t
+uint8_t
 shift_register_get_buttons (void);
 
 #endif // !__SHIFT_REGISTER_H

@@ -20,7 +20,7 @@
  * @param timer The timer to check
  * @return true if the value is a valid timer
  */
-static __inline bool_t
+__inline bool_t
 timer_check (timer_t timer);
 
 /**
@@ -29,7 +29,23 @@ timer_check (timer_t timer);
  * @param divider The divider to check
  * @return true if the value is a valid divider
  */
-static __inline bool_t
+__inline bool_t
 timer_check_divider (timer_divider_t divider);
+
+// ----------------------------------------------------------------------------
+// Implementations
+// ----------------------------------------------------------------------------
+
+__inline bool_t
+timer_check (timer_t timer)
+{
+  return (timer < TIMER_COUNT);
+}
+
+__inline bool_t
+timer_check_divider (timer_divider_t divider)
+{
+  return (divider < TIMER_DIVIDER_COUNT);
+}
 
 #endif // !__TIMER_P_H

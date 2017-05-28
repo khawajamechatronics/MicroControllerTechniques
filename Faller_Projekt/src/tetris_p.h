@@ -145,7 +145,7 @@ tetris_on_timer (void);
  * @param tetris The main tetris instance
  * @param cleared The number of cleared lines with the used tetromino
  */
-static void
+static __inline void
 tetris_game_update_score (tetris_t *tetris, uint8_t cleared);
 
 // --- Field ------------------------------------------------------------------

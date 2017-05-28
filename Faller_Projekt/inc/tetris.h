@@ -41,7 +41,9 @@ typedef struct
 
   uint32_t score;
   uint16_t lines;
+
   uint16_t level;
+  uint8_t part_lines;
 
   uint8_t score_factor;
 } tetris_t;

@@ -126,10 +126,29 @@ tetris_game_send (tetris_t *tetris)
 
 }
 
-static void
+static __inline void
 tetris_game_update_score (tetris_t *tetris, uint8_t cleared)
 {
+  // Reset score factor if no line cleared
+  if (cleared == 0) {
+    tetris->score_factor = 1;
+    return;
+  }
+
   uint16_t last_level = tetris->level;
+  tetris->lines += cleared;
+  tetris->part_lines += cleared;
+
+  while (tetris->part_lines >= 10) {
+    tetris->part_lines -= 10;
+    tetris->level++;
+  }
+
+  tetris->score += tetris->score_factor * cleared;
+
+  // Increase score factor
+  if (tetris->score_factor < 20)
+    tetris->score_factor++;
 
   if (tetris->level != last_level)
     tetris_game_speedup();

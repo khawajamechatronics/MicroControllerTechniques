@@ -9,6 +9,7 @@
 #include "inc/def.h"
 #include "inc/config.h"
 
+#include "inc/shift_register.h"
 #include "inc/uart.h"
 #include "inc/tetris.h"
 
@@ -34,11 +35,11 @@ int main(void) {
   setup();
 
   // Go into low power mode 0
-  __bis_SR_register(LPM0_bits);
+  __bis_SR_register(CPUOFF);
 }
 
 __inline void setup() {
-  // Initialize unused ports
+  // Initialize unused port 1
   // (set as input without pull-up / -down)
   P1IE = 0;
   P1SEL = 0;
@@ -46,6 +47,10 @@ __inline void setup() {
   P1DIR = 0;
   P1OUT = 0;
 
+  // Initialize shift register
+  shift_register_init();
+
+  // Initialize unused port 3
   P3SEL = 0;
   P3SEL2 = 0;
   P3DIR = 0;

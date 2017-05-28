@@ -42,7 +42,14 @@ typedef struct
   tetromino_t current_tetromino;
   tetromino_t next_tetromino;
 
+  uint8_t tetromino_rotation;
+  uint8_t tetromino_x;
+  uint8_t tetromino_y;
+
   uint32_t score;
+  uint16_t lines;
+
+  uint8_t score_factor;
 } tetris_t;
 
 // ----------------------------------------------------------------------------

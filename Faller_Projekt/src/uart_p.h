@@ -15,6 +15,8 @@
 #define UART_SEND_WAITING 0x01
 #define UART_SEND_NOT_WAITING 0x00
 
+#define UART_ESC 0x1B
+
 // ----------------------------------------------------------------------------
 // Types
 // ----------------------------------------------------------------------------
@@ -24,6 +26,7 @@ typedef struct {
   uart_buffer_t t_buffer;
 
   bool_t t_wait;
+
   void (*r_callback)(uart_buffer_t *buffer);
 } uart_t;
 

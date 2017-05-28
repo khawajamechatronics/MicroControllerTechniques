@@ -62,4 +62,25 @@ __inline void setup() {
 
   // Initialize and start the game
   tetris_game_init(&tetris);
+
+  // Print a welcome message each second (Wait for terminal connection)
+  timer_init(TIMER_1);
+  timer_set_divider(TIMER_1, TIMER_DIVIDER_8);
+  timer_set_interval(TIMER_1, 0xF424); // 0.5 second
+  timer_set_callback(TIMER_1, &send_welcome_message);
+  timer_start(TIMER_1);
+}
+
+void send_welcome_message (void)
+{
+  uart_send_terminal_init();
+  uart_send_cls();
+  uart_send_move_to(0, 0);
+  uart_send_string("Welcome to Tetris. Press a key to continue ...");
+}
+
+void start_game (void)
+{
+  timer_stop(TIMER_1);
+  tetris_game_start();
 }

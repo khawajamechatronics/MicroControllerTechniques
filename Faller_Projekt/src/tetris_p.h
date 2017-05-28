@@ -25,6 +25,70 @@
 typedef uint16_t findex_t;
 
 // ----------------------------------------------------------------------------
+// Constants
+// ----------------------------------------------------------------------------
+
+/*
+ * Coordinates for each of the 4 states a tetromino can have.
+ * Each coordinate is given in {x, y} format.
+ * All tetromino blocks rotate clockwise.
+ * The first entry is the initial state.
+ */
+static const int8_t I_TETROMINO[4][4][2] = { // 'I' tetromino
+  {{-1, 0}, {0, 0}, {1, 0}, {2, 0}}, // Horiz
+  {{0, -2}, {0, -1}, {0, 0}, {0, 1}}, // Vert
+  {{-1, 0}, {0, 0}, {1, 0}, {2, 0}}, // Horiz
+  {{0, -2}, {0, -1}, {0, 0}, {0, 1}} // Vert
+};
+static const int8_t T_TETROMINO[4][4][2] = { // 'T' tetromino
+  {{-1, 0}, {0, 0}, {1, 0}, {0, 1}}, // Down
+  {{0, -1}, {0, 0}, {0, 1}, {-1, 0}}, // Left
+  {{-1, 0}, {0, 0}, {1, 0}, {0, -1}}, // Up
+  {{0, -1}, {0, 0}, {0, 1}, {1, 0}} // Right
+};
+static const int8_t Z_TETROMINO[4][4][2] = { // 'Z' tetromino
+  {{-1, -1}, {0, -1}, {0, 0}, {1, 0}}, // Horiz
+  {{1, -1}, {1, 0}, {0, 0}, {0, -1}}, // Vert
+  {{-1, -1}, {0, -1}, {0, 0}, {1, 0}}, // Horiz
+  {{1, -1}, {1, 0}, {0, 0}, {0, -1}} // Vert
+};
+static const int8_t Z_INV_TETROMINO[4][4][2] = { // inverse 'Z' tetromino
+  {{1, -1}, {0, -1}, {0, 0}, {-1, 0}}, // Horiz
+  {{-1, -1}, {-1, 0}, {0, 0}, {1, 0}}, // Vert
+  {{1, -1}, {0, -1}, {0, 0}, {-1, 0}}, // Horiz
+  {{-1, -1}, {-1, 0}, {0, 0}, {1, 0}} // Vert
+};
+static const int8_t L_TETROMINO[4][4][2] = { // 'L' tetromino
+  {{0, -1}, {0, 0}, {1, 0}, {2, 0}}, // Down
+  {{-1, 0}, {0, 0}, {0, 1}, {0, 2}}, // Left
+  {{-2, 0}, {-1, 0}, {0, 0}, {0, 1}}, // Up
+  {{0, -2}, {0, -1}, {0, 0}, {-1, 0}} // Right
+};
+static const int8_t L_INV_TETROMINO[4][4][2] = { // inverse 'L' tetromino
+  {{-2, 0}, {-1, 0}, {0, 0}, {0, 1}}, // Down
+  {{-1, 0}, {0, 0}, {0, -1}, {0, -2}}, // Left
+  {{0, -1}, {0, 0}, {1, 0}, {2, 0}}, // Up
+  {{0, 0}, {1, 0}, {0, -1}, {0, -2}} // Right
+};
+static const int8_t O_TETROMINO[4][4][2] = { // '[]' tetromino
+  {{0, 0}, {1, 0}, {1, 1}, {0, 1}},
+  {{0, 0}, {1, 0}, {1, 1}, {0, 1}},
+  {{0, 0}, {1, 0}, {1, 1}, {0, 1}},
+  {{0, 0}, {1, 0}, {1, 1}, {0, 1}}
+};
+
+static const int8_t *TETROMINO[7] = {
+  (const int8_t*) &I_TETROMINO,
+  (const int8_t*) &T_TETROMINO,
+  (const int8_t*) &Z_TETROMINO,
+  (const int8_t*) &Z_INV_TETROMINO,
+  (const int8_t*) &L_TETROMINO,
+  (const int8_t*) &L_INV_TETROMINO,
+  (const int8_t*) &O_TETROMINO
+
+};
+
+// ----------------------------------------------------------------------------
 // Methods
 // ----------------------------------------------------------------------------
 
@@ -58,8 +122,9 @@ tetris_pick_random_tetromino (void);
  * Clears all full lines in the field and drops all lines above.
  *
  * @param field The field to clear full lines
+ * @return Number of cleared lines
  */
-static __inline void
+static __inline uint8_t
 tetris_clear_full_lines (field_t *field);
 
 /**
@@ -79,28 +144,6 @@ tetris_on_timer (void);
 static __inline field_t*
 tetris_field_get_current (tetris_t *tetris);
 
-#ifndef TETRIS_NO_DOUBLE_BUFFERING
-
-/**
- * Returns the last game field which is currently transmitted.
- *
- * @param tetris The main tetris instance
- * @return A pointer to the last game field
- */
-static __inline field_t*
-tetris_field_get_last (tetris_t *tetris);
-
-/**
- * Switches the current game field to enable updating the display while
- * drawing the next frame.
- *
- * @param tetris The main tetris instance
- */
-static __inline void
-tetris_field_update (tetris_t *tetris);
-
-#else
-
 /**
  * Clears the update flags of all fields.
  *
@@ -108,8 +151,6 @@ tetris_field_update (tetris_t *tetris);
  */
 static __inline void
 tetris_field_update (tetris_t *tetris);
-
-#endif
 
 // --- Item -------------------------------------------------------------------
 

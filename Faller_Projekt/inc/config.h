@@ -5,11 +5,22 @@
 
 #include "def.h"
 
-#define GAME_WIDTH 10
-#define GAME_HEIGHT 22
-#define GAME_TOP_HIDDEN 2
+#define TETRIS_WIDTH 10
+#define TETRIS_HEIGHT 22
+#define TETRIS_TOP_HIDDEN 2
+#define TETRIS_SCALE 2
 
-#define TETRIS_NO_DOUBLE_BUFFERING
+#define TETRIS_BORDER_V '|'
+#define TETRIS_BORDER_H '-'
+#define TETRIS_BORDER_C '+'
+
+#define TETRIS_TETROMINO_I '/'
+#define TETRIS_TETROMINO_T '\\'
+#define TETRIS_TETROMINO_Z '#'
+#define TETRIS_TETROMINO_Z_INV '*'
+#define TETRIS_TETROMINO_L '%'
+#define TETRIS_TETROMINO_L_INV '!'
+#define TETRIS_TETROMINO_O '$'
 
 #define UART_R_BUFFER_SIZE 8
 #define UART_T_BUFFER_SIZE 56

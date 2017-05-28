@@ -86,6 +86,64 @@ uart_send (uint8_t c)
   }
 }
 
+__inline void
+uart_send_move_to (uint8_t v, uint8_t h)
+{
+  uart_send(UART_ESC);
+  uart_send('[');
+  uart_send_number_u8(v, 0);
+  uart_send(';');
+  uart_send_number_u8(h, 0);
+  uart_send('H');
+}
+
+__inline void
+uart_send_string (char *buffer)
+{
+  for (; buffer != '\0'; ++buffer)
+    uart_send(*buffer);
+}
+
+__inline void
+uart_send_number_u8 (uint8_t value, bool_t leading_zero)
+{
+  uint8_t v;
+
+  for (v = '0'; value > 100; value -= 100, ++v);
+  if (leading_zero || v != '0')
+    uart_send(v);
+
+  for (v = '0'; value > 10; value -= 10, ++v);
+  if (leading_zero || v != '0')
+    uart_send(v);
+
+  uart_send('0' + v);
+}
+
+__inline void
+uart_send_number_u16 (uint16_t value, bool_t leading_zero)
+{
+  uint8_t v;
+
+  for (v = '0'; value > 10000; value -= 10000, ++v);
+  if (leading_zero || v != '0')
+    uart_send(v);
+
+  for (v = '0'; value > 1000; value -= 1000, ++v);
+  if (leading_zero || v != '0')
+    uart_send(v);
+
+  for (v = '0'; value > 100; value -= 100, ++v);
+  if (leading_zero || v != '0')
+    uart_send(v);
+
+  for (v = '0'; value > 10; value -= 10, ++v);
+  if (leading_zero || v != '0')
+    uart_send(v);
+
+  uart_send('0' + v);
+}
+
 #pragma vector=USCIAB0TX_VECTOR
 __interrupt void
 uart_int_tx (void)
@@ -105,7 +163,7 @@ uart_int_tx (void)
     uart.t_wait = UART_SEND_NOT_WAITING;
 
     // Enable CPU on interrupt exit
-    __bic_SR_register_on_exit(CPUOFF);
+    __bic_SR_register_on_exit(CPUOFF + GIE);
   }
 }
 

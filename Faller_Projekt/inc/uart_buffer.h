@@ -67,7 +67,7 @@ uart_buffer_dequeue (uart_buffer_t *buffer);
  * @return The pointer to the selected element
  */
 __inline uint8_t*
-uart_buffer_get_character (uart_buffer_t *buffer, uint16_t index);
+uart_buffer_get_at (uart_buffer_t *buffer, uint16_t index);
 
 /**
  * Returns the pointer to the next character.
@@ -79,6 +79,15 @@ uart_buffer_get_character (uart_buffer_t *buffer, uint16_t index);
  * @return The pointer to the next buffer location
  */
 __inline uint8_t*
-uart_buffer_next_character (uart_buffer_t *buffer, uint8_t *p);
+uart_buffer_get_next (uart_buffer_t *buffer, uint8_t *p);
+
+/**
+ * Returns the number of characters in the buffer.
+ *
+ * @param buffer The buffer to use
+ * @return The number of characters in the buffer
+ */
+__inline uint16_t
+uart_buffer_get_fill (uart_buffer_t *buffer);
 
 #endif // !__UART_BUFFER_H

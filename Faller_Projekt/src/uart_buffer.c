@@ -22,7 +22,7 @@ uart_buffer_enqueue (uart_buffer_t *buffer, uint8_t value)
 {
   uint8_t *p = buffer->buffer + buffer->start + buffer->fill;
 
-  if (p >= (buffer->buffer + buffer->buffer_size))
+  while (p >= (buffer->buffer + buffer->buffer_size))
       p -= buffer->buffer_size;
 
   *p = value;
@@ -35,14 +35,14 @@ uart_buffer_dequeue (uart_buffer_t *buffer)
   uint8_t value = buffer->buffer[buffer->start];
 
   buffer->start++;
-  if (buffer->start >= buffer->buffer_size)
+  while (buffer->start >= buffer->buffer_size)
       buffer->start -= buffer->buffer_size;
 
   return value;
 }
 
 __inline uint8_t*
-uart_buffer_get_character (uart_buffer_t *buffer, uint16_t index)
+uart_buffer_get_at (uart_buffer_t *buffer, uint16_t index)
 {
   index += buffer->start;
   while (index >= buffer->buffer_size)
@@ -52,13 +52,19 @@ uart_buffer_get_character (uart_buffer_t *buffer, uint16_t index)
 }
 
 __inline uint8_t*
-uart_buffer_next_character (uart_buffer_t *buffer, uint8_t *p)
+uart_buffer_get_next (uart_buffer_t *buffer, uint8_t *p)
 {
   p++; // Forward pointer
 
   // Check upper bound
-  if (p >= (buffer->buffer + buffer->buffer_size))
+  while (p >= (buffer->buffer + buffer->buffer_size))
     p -= buffer->buffer_size;
 
   return p;
+}
+
+__inline uint16_t
+uart_buffer_get_fill (uart_buffer_t *buffer)
+{
+  return buffer->fill;
 }

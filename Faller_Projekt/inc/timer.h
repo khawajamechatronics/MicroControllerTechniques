@@ -67,8 +67,9 @@ timer_reset (timer_t timer);
  * Returns if the timer is currently running.
  *
  * @param timer The timer to check
+ * @return true if the timer is running
  */
-__inline void
+__inline bool_t
 timer_is_running (timer_t timer);
 
 /**

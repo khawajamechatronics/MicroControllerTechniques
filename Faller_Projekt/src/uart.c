@@ -50,15 +50,16 @@ uart_init (uint8_t *r_buffer, uint16_t r_size,
   UCA0IRTCTL = 0;
   UCA0IRRCTL = 0;
   UCA0ABCTL = 0;
-  UCA0BR0 = 8; // Select 8 as prescaler for 115200 baud (page 424)
-  UCA0BR1 = 0;
-  UCA0MCTL = UCBRS_6; // Select 6 as modulation for 115200 baud
+  UCA0BR0 = (uint8_t) (UART_PRESCALER & 0xFF);
+  UCA0BR1 = (uint8_t) ((UART_PRESCALER >> 8) & 0xFF);
+  UCA0MCTL = UART_MODULATION;
 
-  IE2 |= UCA0TXIE | UCA0RXIE; // Enable receive / transmit interrupt
+  // Enable receive / transmit interrupt
+  IE2 |= UCA0TXIE | UCA0RXIE;
 }
 
 void
-uart_set_receive_callback (void (*callback)(uart_buffer_t *buffer))
+uart_set_receive_callback (bool_t (*callback)(uart_buffer_t *buffer))
 {
   uart.r_callback = callback;
 }
@@ -69,20 +70,16 @@ uart_send (uint8_t c)
   if (uart_buffer_is_full(&uart.t_buffer)) {
     // Enable reentrant interrupts and wait until buffer is empty
     uart.t_wait = UART_SEND_WAITING;
-    __bis_SR_register(GIE + CPUOFF);
+
+    while (uart.t_wait == UART_SEND_WAITING)
+      __bis_SR_register(GIE + CPUOFF);
   }
+
+  uart_buffer_enqueue(&uart.t_buffer, c);
 
   if (!(UCA0STAT & UCBUSY)) {
     // Send next character (The interrupt flag is automatically cleared)
-    UCA0TXBUF = c;
-  } else {
-    uart_buffer_enqueue(&uart.t_buffer, c);
-
-    // Did the queue get finished right now?
-    if (!(UCA0STAT & UCBUSY)) {
-      // Send next character (The interrupt flag is automatically cleared)
-      UCA0TXBUF = uart_buffer_dequeue(&uart.t_buffer);
-    }
+    UCA0TXBUF = uart_buffer_dequeue(&uart.t_buffer);
   }
 }
 
@@ -100,7 +97,7 @@ uart_send_move_to (uint8_t v, uint8_t h)
 void
 uart_send_string (char *buffer)
 {
-  for (; buffer != '\0'; ++buffer)
+  for (; *buffer != '\0'; ++buffer)
     uart_send(*buffer);
 }
 
@@ -109,15 +106,15 @@ uart_send_number_u8 (uint8_t value, bool_t leading_zero)
 {
   uint8_t v;
 
-  for (v = '0'; value > 100; value -= 100, ++v);
+  for (v = '0'; value >= 100; value -= 100, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  for (v = '0'; value > 10; value -= 10, ++v);
+  for (v = '0'; value >= 10; value -= 10, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  uart_send('0' + v);
+  uart_send('0' + value);
 }
 
 void
@@ -125,30 +122,30 @@ uart_send_number_u16 (uint16_t value, bool_t leading_zero)
 {
   uint8_t v;
 
-  for (v = '0'; value > 10000; value -= 10000, ++v);
+  for (v = '0'; value >= 10000; value -= 10000, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  for (v = '0'; value > 1000; value -= 1000, ++v);
+  for (v = '0'; value >= 1000; value -= 1000, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  for (v = '0'; value > 100; value -= 100, ++v);
+  for (v = '0'; value >= 100; value -= 100, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  for (v = '0'; value > 10; value -= 10, ++v);
+  for (v = '0'; value >= 10; value -= 10, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  uart_send('0' + v);
+  uart_send('0' + value);
 }
 
 void
 uart_send_cls (void)
 {
   uart_send(UART_ESC);
-  uart_send_string("[2J");
+  uart_send_string("[J");
 }
 
 void
@@ -208,6 +205,6 @@ uart_int_rx (void)
 
   uart_buffer_enqueue(&uart.r_buffer, received_char);
 
-  if (uart.r_callback != 0)
-    uart.r_callback(&uart.r_buffer);
+  if (uart.r_callback != 0 && uart.r_callback(&uart.r_buffer))
+    __bic_SR_register_on_exit(CPUOFF);
 }

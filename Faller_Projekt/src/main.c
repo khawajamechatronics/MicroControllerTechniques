@@ -40,8 +40,13 @@ main (void)
 
   setup();
 
-  // Go into low power mode 0
-  __bis_SR_register(CPUOFF);
+  for (;;) {
+    // Go into low power mode 0
+    __bis_SR_register(CPUOFF);
+
+    // Compute the next state and transmit
+    tetris_game_process();
+  }
 }
 
 __attribute__((always_inline))
@@ -82,27 +87,37 @@ setup (void)
   timer_start(TIMER_1);
 }
 
-static void
+static bool_t
 main_send_welcome (void)
 {
   uart_send_terminal_init();
+  uart_send_move_to(0, 1);
   uart_send_cls();
-  uart_send_move_to(0, 0);
-  uart_send_string("Welcome to Tetris. Press a key to continue ...");
+  uart_send_string("Welcome to Tetris. Press enter to continue ...\r\n");
+  uart_send_string("Please set the resolution to at least 30x80 chars!\r\n");
+
+  // Don't wake the CPU
+  return 0;
 }
 
-static void
+static bool_t
 main_uart_received (uart_buffer_t *buffer)
 {
-  uart_set_receive_callback(0);
-  uart_buffer_clear(buffer);
+  while (!uart_buffer_is_empty(buffer)) {
+    if (uart_buffer_dequeue(buffer) == KEY_ENTER) {
+      timer_stop(TIMER_1);
 
-  main_start_game();
-}
+      // Clear screen
+      uart_send_move_to(0, 1);
+      uart_send_cls();
 
-static void
-main_start_game (void)
-{
-  timer_stop(TIMER_1);
-  tetris_game_start();
+      tetris_game_start();
+
+      // Wake up CPU to send the initial game field
+      return 1;
+    }
+  }
+
+  // Don't wake up the CPU
+  return 0;
 }

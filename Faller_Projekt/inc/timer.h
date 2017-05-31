@@ -110,11 +110,12 @@ timer_get_divider (timer_t timer);
 /**
  * Sets the callback for the timer which is called on completion.
  * Pass a 0-pointer to deactivate the callback.
+ * If the callback returns true the CPU is re-activated from low power mode.
  *
  * @param timer The timer to modify
  * @param callback The callback which is called when the timer is triggered
  */
 void
-timer_set_callback (timer_t timer, void (*callback)(void));
+timer_set_callback (timer_t timer, bool_t (*callback)(void));
 
 #endif // !__TIMER_H

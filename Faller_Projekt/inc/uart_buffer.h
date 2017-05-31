@@ -129,12 +129,12 @@ __attribute__((always_inline))
 __inline void
 uart_buffer_enqueue (uart_buffer_t *buffer, uint8_t value)
 {
-  uint8_t *p = buffer->buffer + buffer->start + buffer->fill;
+  uint8_t position = buffer->start + buffer->fill;
 
-  while (p >= (buffer->buffer + buffer->buffer_size))
-      p -= buffer->buffer_size;
+  while (position >= buffer->buffer_size)
+    position -= buffer->buffer_size;
 
-  *p = value;
+  buffer->buffer[position] = value;
   buffer->fill++;
 }
 
@@ -144,6 +144,7 @@ uart_buffer_dequeue (uart_buffer_t *buffer)
 {
   uint8_t value = buffer->buffer[buffer->start];
 
+  buffer->fill--;
   buffer->start++;
   while (buffer->start >= buffer->buffer_size)
       buffer->start -= buffer->buffer_size;

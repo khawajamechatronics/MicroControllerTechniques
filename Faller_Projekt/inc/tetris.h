@@ -23,6 +23,14 @@ typedef enum {
   TETROMINO_O = 0x06
 } tetromino_t;
 
+typedef enum {
+  COMMAND_LEFT,
+  COMMAND_RIGHT,
+  COMMAND_ROTATE,
+  COMMAND_DOWN,
+  COMMAND_DROP
+} tetris_command_t;
+
 typedef struct
 {
   field_item_t data[TETRIS_WIDTH * TETRIS_HEIGHT];
@@ -41,11 +49,15 @@ typedef struct
 
   uint32_t score;
   uint16_t lines;
-
   uint16_t level;
   uint8_t part_lines;
 
   uint8_t score_factor;
+  uint8_t t_spin;
+
+  uint8_t command_down;
+  int8_t command_rotate;
+  int8_t command_move;
 } tetris_t;
 
 // ----------------------------------------------------------------------------
@@ -65,5 +77,11 @@ tetris_game_init (tetris_t *tetris);
  */
 void
 tetris_game_start (void);
+
+/**
+ * Updates the tetris game and processes all received data.
+ */
+void
+tetris_game_process (void);
 
 #endif // !__TETRIS_H

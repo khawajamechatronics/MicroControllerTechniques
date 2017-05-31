@@ -10,7 +10,7 @@
 
 #include "timer_p.h"
 
-static void (*timer_callbacks[TIMER_COUNT])(void);
+static bool_t (*timer_callbacks[TIMER_COUNT])(void);
 
 void
 timer_init (timer_t timer)
@@ -169,7 +169,7 @@ timer_get_divider (timer_t timer)
 }
 
 void
-timer_set_callback (timer_t timer, void (*callback)(void))
+timer_set_callback (timer_t timer, bool_t (*callback)(void))
 {
   if (!timer_check(timer))
     return;
@@ -182,24 +182,24 @@ timer_set_callback (timer_t timer, void (*callback)(void))
 __interrupt void
 timer_int0 (void)
 {
-  void (*callback)(void);
+  bool_t (*callback)(void);
 
   TA0CCTL0 &= ~CCIFG; // Reset interrupt flag
 
   callback = timer_callbacks[0];
-  if (callback != 0)
-    callback();
+  if (callback != 0 && callback())
+    __bic_SR_register_on_exit(CPUOFF);
 }
 
 #pragma vector=TIMER1_A0_VECTOR
 __interrupt void
 timer_int1 (void)
 {
-  void (*callback)(void);
+  bool_t (*callback)(void);
 
   TA1CCTL0 &= ~CCIFG; // Reset interrupt flag
 
   callback = timer_callbacks[1];
-  if (callback != 0)
-    callback();
+  if (callback != 0 && callback())
+    __bic_SR_register_on_exit(CPUOFF);
 }

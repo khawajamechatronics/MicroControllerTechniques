@@ -1,0 +1,8 @@
+Feedback
+========
+
+Problems
+--------
+- Linking 'inline' functions in C is not possible if used in multiple files
+  (One-file inline linking works)
+- 

@@ -8,7 +8,7 @@
 /**
  * Prints a welcome message to the console after initializing it.
  */
-static void
+static bool_t
 main_send_welcome (void);
 
 /**
@@ -20,10 +20,12 @@ main_start_game (void);
 /**
  * Callback which gets called if UART data was received in the welcome
  * screen.
+ * Returns true if the CPU is resumed.
  *
  * @param buffer The buffer with the received data
+ * @return true if the CPU should be resumed
  */
-static void
+static bool_t
 main_uart_received (uart_buffer_t *buffer);
 
 #endif // !__MAIN_H

@@ -85,7 +85,40 @@ static const int8_t *TETROMINO[7] = {
   (const int8_t*) &L_TETROMINO,
   (const int8_t*) &L_INV_TETROMINO,
   (const int8_t*) &O_TETROMINO
+};
 
+static const char TETROMINO_CHAR[7] = {
+  TETRIS_TETROMINO_I,
+  TETRIS_TETROMINO_T,
+  TETRIS_TETROMINO_Z,
+  TETRIS_TETROMINO_Z_INV,
+  TETRIS_TETROMINO_L,
+  TETRIS_TETROMINO_L_INV,
+  TETRIS_TETROMINO_O
+};
+
+// Pre-computed score result table
+static const uint16_t SCORE_MULTIPLIER[20][4] = {
+  {1, 2, 3, 4},
+  {2, 4, 6, 8},
+  {3, 6, 9, 12},
+  {4, 8, 12, 16},
+  {5, 10, 15, 20},
+  {6, 12, 18, 24},
+  {7, 14, 21, 28},
+  {8, 16, 24, 32},
+  {9, 18, 27, 36},
+  {10, 20, 30, 40},
+  {11, 22, 33, 44},
+  {12, 24, 36, 48},
+  {13, 26, 39, 52},
+  {14, 28, 42, 56},
+  {15, 30, 45, 60},
+  {16, 32, 48, 64},
+  {17, 34, 51, 68},
+  {18, 36, 54, 72},
+  {19, 38, 57, 76},
+  {20, 40, 60, 80}
 };
 
 // ----------------------------------------------------------------------------
@@ -99,8 +132,8 @@ static const int8_t *TETROMINO[7] = {
  *
  * @param tetris The main tetris instance
  */
-static __inline void
-tetris_game_drop (tetris_t *tetris);
+static __inline bool_t
+tetris_game_down (tetris_t *tetris);
 
 /**
  * Sends the current field to the user including score and next tetrominos.
@@ -134,19 +167,36 @@ static __inline uint8_t
 tetris_field_clear_full_lines (field_t *field);
 
 /**
- * Callback method for drop timer.
- */
-static void
-tetris_on_timer (void);
-
-/**
  * Updates the current score.
  *
  * @param tetris The main tetris instance
  * @param cleared The number of cleared lines with the used tetromino
+ * @param t_spin true if the last executed (non-drop) action is a t-spin
  */
 static __inline void
-tetris_game_update_score (tetris_t *tetris, uint8_t cleared);
+tetris_game_update_score (tetris_t *tetris, uint8_t cleared, bool_t t_spin);
+
+/**
+ * Callback method for drop timer.
+ */
+static bool_t
+tetris_on_timer (void);
+
+/**
+ * Callback method for key presses which get finally queued.
+ *
+ * @param buffer The buffer to read key data from
+ */
+static bool_t
+tetris_on_key (uart_buffer_t *buffer);
+
+/**
+ * Callback method for user / timer created command.
+ *
+ * @param command The command to execute
+ */
+static void
+tetris_on_command (tetris_command_t command);
 
 // --- Field ------------------------------------------------------------------
 
@@ -262,5 +312,29 @@ tetris_field_item_clear_temp (field_item_t *item);
  */
 static __inline tetromino_t
 tetris_field_item_get_tetromino (field_item_t *item);
+
+// --- Helper -----------------------------------------------------------------
+
+/**
+ * Checks if the coordinate is in the tetris field.
+ *
+ * @param x The x location
+ * @param y The y location
+ * @return true if the coordinate is valid
+ */
+__attribute__((always_inline))
+__inline bool_t
+tetris_check_bounds (int8_t x, int8_t y);
+
+// ----------------------------------------------------------------------------
+// Implementations
+// ----------------------------------------------------------------------------
+
+__attribute__((always_inline))
+__inline bool_t
+tetris_check_bounds (int8_t x, int8_t y)
+{
+  return ((x >= 0) && (y >= 0) && (x < TETRIS_WIDTH) && (y < TETRIS_HEIGHT));
+}
 
 #endif // !__TETRIS_P_H

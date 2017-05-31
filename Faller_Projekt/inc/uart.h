@@ -82,10 +82,11 @@ uart_send_string (char *buffer);
 /**
  * Sets the callback function which is called when data was received.
  * Pass 0 to this function to deactivate the callback.
+ * If the callback returns true the CPU is re-activated from low power mode.
  *
  * @param callback The callback function to notify
  */
 void
-uart_set_receive_callback (void (*callback)(uart_buffer_t *buffer));
+uart_set_receive_callback (bool_t (*callback)(uart_buffer_t *buffer));
 
 #endif // !__UART_H

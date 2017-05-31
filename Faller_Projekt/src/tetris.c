@@ -368,10 +368,17 @@ tetris_field_item_clear_temp (field_item_t *item)
 // --- UART IO ----------------------------------------------------------------
 
 static __inline void
-tetris_game_send (tetris_t *tetris)
+tetris_game_send_field (tetris_t *tetris)
 {
-  field_t *field = tetris_field_get_current(tetris);
   uint8_t y_offset = TETRIS_Y;
+  field_t *field = tetris_field_get_current(tetris);
+
+  // Draw top border
+  uart_send_move_to(y_offset++, TETRIS_X);
+  uart_send(TETRIS_BORDER_C);
+  for (uint8_t i = TETRIS_SCALE * TETRIS_WIDTH; i-- > 0;)
+    uart_send((i & 0x01) ? TETRIS_BORDER_H : ' ');
+  uart_send(TETRIS_BORDER_C);
 
   // Draw main game field
   for (uint8_t row = 0; row < TETRIS_HEIGHT; ++row) {
@@ -394,8 +401,6 @@ tetris_game_send (tetris_t *tetris)
       }
 
       uart_send(TETRIS_BORDER_V);
-      uart_send('\r');
-      uart_send('\n');
     }
   }
 
@@ -405,7 +410,62 @@ tetris_game_send (tetris_t *tetris)
   for (uint8_t i = TETRIS_SCALE * TETRIS_WIDTH; i-- > 0;)
     uart_send(TETRIS_BORDER_H);
   uart_send(TETRIS_BORDER_C);
-  uart_send('\r');
-  uart_send('\n');
+}
 
+static __inline void
+tetris_game_send_score (tetris_t *tetris)
+{
+  uint8_t y_offset = TETRIS_SCORE_Y;
+  uint8_t i;
+
+  // Draw top score border
+  uart_send_move_to(y_offset++, TETRIS_SCORE_X);
+  uart_send(TETRIS_BORDER_C);
+  for (uint8_t i = 13; i-- > 0;)
+    uart_send(TETRIS_BORDER_H);
+  uart_send(TETRIS_BORDER_C);
+
+  uart_send_move_to(y_offset++, TETRIS_SCORE_X);
+  uart_send(TETRIS_BORDER_V);
+  uart_send_string(" Score:      ");
+  uart_send(TETRIS_BORDER_V);
+
+  uart_send_move_to(y_offset++, TETRIS_SCORE_X);
+  uart_send(TETRIS_BORDER_V);
+  uart_send_string("  ");
+  uart_send_number_u32(tetris->score, 1);
+  uart_send(' ');
+  uart_send(TETRIS_BORDER_V);
+
+  uart_send_move_to(y_offset++, TETRIS_SCORE_X);
+  uart_send(TETRIS_BORDER_V);
+  for (i = 13; i-- > 0;)
+    uart_send(' ');
+  uart_send(TETRIS_BORDER_V);
+
+  uart_send_move_to(y_offset++, TETRIS_SCORE_X);
+  uart_send(TETRIS_BORDER_V);
+  uart_send_string(" Level:      ");
+  uart_send(TETRIS_BORDER_V);
+
+  uart_send_move_to(y_offset++, TETRIS_SCORE_X);
+  uart_send(TETRIS_BORDER_V);
+  uart_send_string("       ");
+  uart_send_number_u16(tetris->level, 1);
+  uart_send(' ');
+  uart_send(TETRIS_BORDER_V);
+
+  // Draw bottom score border
+  uart_send_move_to(y_offset++, TETRIS_SCORE_X);
+  uart_send(TETRIS_BORDER_C);
+  for (uint8_t i = 13; i-- > 0;)
+    uart_send(TETRIS_BORDER_H);
+  uart_send(TETRIS_BORDER_C);
+}
+
+static __inline void
+tetris_game_send (tetris_t *tetris)
+{
+  tetris_game_send_field(tetris);
+  tetris_game_send_score(tetris);
 }

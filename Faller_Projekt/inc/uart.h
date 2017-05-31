@@ -51,10 +51,25 @@ void
 uart_send_number_u16 (uint16_t value, bool_t leading_zero);
 
 /**
- * Sends a clear screen command to UART interface.
+ * Sends the 32-bit value as ASCII text to the UART interface.
+ *
+ * @param value The value to send
+ * @param leading_zero If leading '0's should be send
+ */
+void
+uart_send_number_u32 (uint32_t value, bool_t leading_zero);
+
+/**
+ * Sends a clear screen command to the UART interface.
  */
 void
 uart_send_cls (void);
+
+/**
+ * Sends a new line to the UART interface.
+ */
+void
+uart_send_nl (void);
 
 /**
  * Initializes the terminal to a 80 column text mode.

@@ -12,6 +12,9 @@
 #define TETRIS_X 10
 #define TETRIS_Y 2
 
+#define TETRIS_SCORE_X 25
+#define TETRIS_SCORE_Y 2
+
 #define TETRIS_BORDER_V '|'
 #define TETRIS_BORDER_H '-'
 #define TETRIS_BORDER_C '+'

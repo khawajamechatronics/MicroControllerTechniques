@@ -135,13 +135,6 @@ static const uint16_t SCORE_MULTIPLIER[20][4] = {
 static __inline bool_t
 tetris_game_down (tetris_t *tetris);
 
-/**
- * Sends the current field to the user including score and next tetrominos.
- *
- * @param tetris The main tetris instance
- */
-static void
-tetris_game_send (tetris_t *tetris);
 
 /**
  * Increases the drop speed of all tetrominos.
@@ -175,6 +168,8 @@ tetris_field_clear_full_lines (field_t *field);
  */
 static __inline void
 tetris_game_update_score (tetris_t *tetris, uint8_t cleared, bool_t t_spin);
+
+// --- Callback methods -------------------------------------------------------
 
 /**
  * Callback method for drop timer.
@@ -312,6 +307,32 @@ tetris_field_item_clear_temp (field_item_t *item);
  */
 static __inline tetromino_t
 tetris_field_item_get_tetromino (field_item_t *item);
+
+// --- UART IO ----------------------------------------------------------------
+
+/**
+ * Sends the current field to the user including score and next tetrominos.
+ *
+ * @param tetris The main tetris instance
+ */
+static void
+tetris_game_send (tetris_t *tetris);
+
+/**
+ * Sends only the current game field to the user.
+ *
+ * @param tetris The main tetris instance
+ */
+static __inline void
+tetris_game_send_field (tetris_t *tetris);
+
+/**
+ * Sends only the current score to the user.
+ *
+ * @param tetris The main tetris instance
+ */
+static __inline void
+tetris_game_send_score (tetris_t *tetris);
 
 // --- Helper -----------------------------------------------------------------
 

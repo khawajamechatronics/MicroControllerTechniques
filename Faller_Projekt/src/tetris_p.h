@@ -97,6 +97,16 @@ static const char TETROMINO_CHAR[7] = {
   TETRIS_TETROMINO_O
 };
 
+static const uint8_t TETROMINO_INIT_POS[7][2] = {
+  {3, 1}, // 'I' tetromino
+  {4, 1}, // 'T' tetromino
+  {4, 1}, // 'Z' tetromino
+  {4, 1}, // 'Z' inv tetromino
+  {4, 1}, // 'L' tetromino
+  {4, 1}, // 'L' inv tetromino
+  {4, 1} // 'O' tetromino
+};
+
 // Pre-computed score result table
 static const uint16_t SCORE_MULTIPLIER[20][4] = {
   {1, 2, 3, 4},
@@ -169,6 +179,37 @@ tetris_field_clear_full_lines (field_t *field);
 static __inline void
 tetris_game_update_score (tetris_t *tetris, uint8_t cleared, bool_t t_spin);
 
+/**
+ * Checks if the tetromino intersects with the current game field.
+ * If a field of the tetromino is out of bounds true is returned.
+ *
+ * @param field The current game field
+ * @param tetromino The tetromino to test
+ * @param x The x position of the tetromino
+ * @param y The y position of the tetromino
+ * @param rotation The rotation of the tetromino (range 0 to 4)
+ * @return true if the tetromino intersects
+ */
+static bool_t
+tetris_game_check_collision (field_t *field, tetromino_t tetromino,
+                             uint8_t x, uint8_t y, uint8_t rotation);
+
+/**
+ * Puts the tetromino at the specified position of the field.
+ * If the tetromino is out of bounds only the valid part is set.
+ *
+ * @param field The game field to use
+ * @param tetromino The tetromino to set at the position
+ * @param x The x position of the tetromino
+ * @param y The y position of the tetromino
+ * @param rotation The rotation of the tetromino (range 0 to 4)
+ * @param flags The flags to apply to the tetromino
+ */
+static void
+tetris_game_place_tetromino (field_t *field, tetromino_t tetromino,
+                             uint8_t x, uint8_t y, uint8_t rotation,
+                             uint8_t flags);
+
 // --- Callback methods -------------------------------------------------------
 
 /**
@@ -233,7 +274,7 @@ tetris_field_item_get (field_t *field, findex_t index);
  * @return The item at the specified position
  */
 static __inline field_item_t*
-tetris_field_item_get_at (field_t *field, findex_t x, findex_t y);
+tetris_field_item_get_at (field_t *field, uint8_t x, uint8_t y);
 
 /**
  * Returns the index of the specified location.
@@ -243,7 +284,7 @@ tetris_field_item_get_at (field_t *field, findex_t x, findex_t y);
  * @return The index to access the item
  */
 static __inline findex_t
-tetris_field_item_get_index (findex_t x, findex_t y);
+tetris_field_item_get_index (uint8_t x, uint8_t y);
 
 /**
  * Updates the item on the field.

@@ -217,6 +217,12 @@ uart_send_terminal_init (void)
   // Reset interlacing mode
   uart_send(UART_ESC);
   uart_send_string("[?9l");
+
+  // Disable cursor
+  uart_send(UART_ESC);
+  uart_send_string("[?25l");
+  uart_send(UART_ESC);
+  uart_send_string("[?50l");
 }
 
 #pragma vector=USCIAB0TX_VECTOR

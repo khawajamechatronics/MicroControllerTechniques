@@ -22,12 +22,12 @@
 #define TETRIS_BORDER_H '-'
 #define TETRIS_BORDER_C '+'
 
-#define TETRIS_TETROMINO_I '/'
-#define TETRIS_TETROMINO_T '\\'
+#define TETRIS_TETROMINO_I 'X'
+#define TETRIS_TETROMINO_T '&'
 #define TETRIS_TETROMINO_Z '#'
 #define TETRIS_TETROMINO_Z_INV '*'
 #define TETRIS_TETROMINO_L '%'
-#define TETRIS_TETROMINO_L_INV '!'
+#define TETRIS_TETROMINO_L_INV 'O'
 #define TETRIS_TETROMINO_O '$'
 
 #define UART_R_BUFFER_SIZE 8

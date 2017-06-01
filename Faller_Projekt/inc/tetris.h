@@ -39,13 +39,14 @@ typedef struct
 typedef struct
 {
   field_t buffer;
+  uint8_t timer_divider;
 
-  tetromino_t current_tetromino;
-  tetromino_t next_tetromino;
+  tetromino_t tetro;
+  tetromino_t tetro_next;
 
-  uint8_t tetromino_rotation;
-  uint8_t tetromino_x;
-  uint8_t tetromino_y;
+  uint8_t tetro_rot;
+  uint8_t tetro_x;
+  uint8_t tetro_y;
 
   uint32_t score;
   uint16_t lines;

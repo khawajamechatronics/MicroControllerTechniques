@@ -102,8 +102,8 @@ static const uint8_t TETROMINO_INIT_POS[7][2] = {
   {4, 1}, // 'T' tetromino
   {4, 1}, // 'Z' tetromino
   {4, 1}, // 'Z' inv tetromino
-  {4, 1}, // 'L' tetromino
-  {4, 1}, // 'L' inv tetromino
+  {3, 1}, // 'L' tetromino
+  {5, 1}, // 'L' inv tetromino
   {4, 1} // 'O' tetromino
 };
 
@@ -138,12 +138,22 @@ static const uint16_t SCORE_MULTIPLIER[20][4] = {
 // --- Game -------------------------------------------------------------------
 
 /**
+ * Uses the next tetromino and places it at the top of the game field.
+ */
+static __inline void
+tetris_game_new_tetromino (void);
+
+/**
  * Updates the game field and drops the tetromino.
+ * A value of 0 is returned if the tetromino is placed outside the normal
+ * game area.
  *
  * @param tetris The main tetris instance
+ * @param field The current game field
+ * @return false if the game was lost
  */
 static __inline bool_t
-tetris_game_down (tetris_t *tetris);
+tetris_game_down (tetris_t *tetris, field_t *field);
 
 
 /**
@@ -203,12 +213,13 @@ tetris_game_check_collision (field_t *field, tetromino_t tetromino,
  * @param x The x position of the tetromino
  * @param y The y position of the tetromino
  * @param rotation The rotation of the tetromino (range 0 to 4)
- * @param flags The flags to apply to the tetromino
+ * @param value The value set at the valid fields
+ * @return false if the tetromino was out of bounds
  */
-static void
+static bool_t
 tetris_game_place_tetromino (field_t *field, tetromino_t tetromino,
                              uint8_t x, uint8_t y, uint8_t rotation,
-                             uint8_t flags);
+                             uint8_t value);
 
 // --- Callback methods -------------------------------------------------------
 
@@ -308,39 +319,6 @@ static __inline bool_t
 tetris_field_item_is_empty (field_item_t *item);
 
 /**
- * Sets the updated flag of the item.
- *
- * @param item The item to update
- */
-static __inline void
-tetris_field_item_set_updated (field_item_t *item);
-
-/**
- * Sets the temporary flag of the item.
- *
- * @param item The item to update
- */
-static __inline void
-tetris_field_item_set_temp (field_item_t *item);
-
-
-/**
- * Clears the updated flag of the item.
- *
- * @param item The item to update
- */
-static __inline void
-tetris_field_item_clear_updated (field_item_t *item);
-
-/**
- * Clears the temporary flag of the item.
- *
- * @param item The item to update
- */
-static __inline void
-tetris_field_item_clear_temp (field_item_t *item);
-
-/**
  * Returns
  *
  * @param item
@@ -374,6 +352,16 @@ tetris_game_send_field (tetris_t *tetris);
  */
 static __inline void
 tetris_game_send_score (tetris_t *tetris);
+
+/**
+ * Draws a line of a box.
+ *
+ * @param count The inner size of the box
+ * @param edge The char used for the edges
+ * @param fill The char used for the content
+ */
+static __inline void
+tetris_game_send_boxline (uint8_t count, uint8_t edge, uint8_t fill);
 
 // --- Helper -----------------------------------------------------------------
 

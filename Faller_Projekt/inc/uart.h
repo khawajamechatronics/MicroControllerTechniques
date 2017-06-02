@@ -4,11 +4,10 @@
 #define __UART_H
 
 #include <stdint.h>
-
 #include "def.h"
 #include "config.h"
-
 #include "uart_buffer.h"
+
 
 /**
  * Initializes the UART connection with the specified buffers.

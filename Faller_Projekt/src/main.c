@@ -5,6 +5,7 @@
 #include <msp430.h>
 #include <templateEMP.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "inc/def.h"
 #include "inc/config.h"
@@ -74,10 +75,13 @@ setup (void)
   uart_init(uart_r_buffer, UART_R_BUFFER_SIZE,
             uart_t_buffer, UART_T_BUFFER_SIZE);
 
-  // Initialize and start the game
-  tetris_game_init(&tetris);
-
   uart_set_receive_callback(&main_uart_received);
+
+  // Initialize timer to seed the RNG
+  timer_init(TIMER_2);
+  timer_set_divider(TIMER_2, TIMER_DIVIDER_1);
+  timer_set_interval(TIMER_2, 0xFFFF);
+  timer_start_counter(TIMER_2);
 
   // Print a welcome message each second (Wait for terminal connection)
   timer_init(TIMER_1);
@@ -106,6 +110,13 @@ main_uart_received (uart_buffer_t *buffer)
   while (!uart_buffer_is_empty(buffer)) {
     if (uart_buffer_dequeue(buffer) == KEY_ENTER) {
       timer_stop(TIMER_1);
+      timer_stop(TIMER_2);
+
+      // Seed the RNG
+      srand(timer_get_value(TIMER_2));
+
+      // Initialize the game
+      tetris_game_init(&tetris);
 
       // Clear screen
       uart_send_move_to(0, 1);

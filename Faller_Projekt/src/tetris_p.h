@@ -77,7 +77,7 @@ static const int8_t O_TETROMINO[4][4][2] = { // '[]' tetromino
   {{0, 0}, {1, 0}, {1, 1}, {0, 1}}
 };
 
-static const int8_t *TETROMINO[7] = {
+static const int8_t* const TETROMINO[7] = {
   (const int8_t*) &I_TETROMINO,
   (const int8_t*) &T_TETROMINO,
   (const int8_t*) &Z_TETROMINO,
@@ -99,12 +99,12 @@ static const char TETROMINO_CHAR[7] = {
 
 static const uint8_t TETROMINO_INIT_POS[7][2] = {
   {3, 1}, // 'I' tetromino
-  {4, 1}, // 'T' tetromino
+  {4, 0}, // 'T' tetromino
   {4, 1}, // 'Z' tetromino
   {4, 1}, // 'Z' inv tetromino
   {3, 1}, // 'L' tetromino
-  {5, 1}, // 'L' inv tetromino
-  {4, 1} // 'O' tetromino
+  {5, 0}, // 'L' inv tetromino
+  {3, 0} // 'O' tetromino
 };
 
 // Pre-computed score result table

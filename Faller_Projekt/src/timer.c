@@ -52,6 +52,22 @@ timer_start (timer_t timer)
 }
 
 void
+timer_start_counter (timer_t timer)
+{
+  if (!timer_check(timer))
+    return;
+
+  switch (timer) {
+  case TIMER_1:
+    TA0CTL |= MC_1; // Enable counter
+    break;
+  case TIMER_2:
+    TA1CTL |= MC_1; // Enable counter
+    break;
+  }
+}
+
+void
 timer_stop (timer_t timer)
 {
   if (!timer_check(timer))
@@ -165,6 +181,22 @@ timer_get_divider (timer_t timer)
     return (timer_divider_t) (TA1CTL & (ID0 | ID1)) >> 6;
   default:
     return TIMER_DIVIDER_1;
+  }
+}
+
+uint16_t
+timer_get_value (timer_t timer)
+{
+  if (!timer_check(timer))
+    return 0;
+
+  switch (timer) {
+  case TIMER_1:
+    return TA0R;
+  case TIMER_2:
+    return TA1R;
+  default:
+    return 0;
   }
 }
 

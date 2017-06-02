@@ -48,6 +48,14 @@ void
 timer_start (timer_t timer);
 
 /**
+ * Starts the selected timer without enabling the interrupts.
+ *
+ * @param timer The timer to start
+ */
+void
+timer_start_counter (timer_t timer);
+
+/**
  * Stops the selected timer.
  *
  * @param timer The timer to stop
@@ -106,6 +114,15 @@ timer_set_divider (timer_t timer, timer_divider_t divider);
  */
 timer_divider_t
 timer_get_divider (timer_t timer);
+
+/**
+ * Gets the current value of the timer register.
+ *
+ * @param timer The timer to get
+ * @return The current value of the timer register
+ */
+uint16_t
+timer_get_value (timer_t timer);
 
 /**
  * Sets the callback for the timer which is called on completion.

@@ -63,36 +63,45 @@ tetris_game_start (void)
 void
 tetris_game_process (void)
 {
-  field_t *field = tetris_field_get_current(tetris_inst);
-
-  // Clear old tetromino position
-  tetris_game_place_tetromino(field, tetris_inst->tetro,
-                              tetris_inst->tetro_x,
-                              tetris_inst->tetro_y,
-                              tetris_inst->tetro_rot,
-                              0);
-
-  while (tetris_inst->command_down > 0)
+  for(;;)
   {
-    timer_reset(TIMER_1);
-    tetris_inst->timer_divider = 0;
+    field_t *field = tetris_field_get_current(tetris_inst);
 
-    if(!tetris_game_down(tetris_inst, field))
-    { // Game over
-      for (;;);
+    // Clear old tetromino position
+    tetris_game_place_tetromino(field, tetris_inst->tetro,
+                                tetris_inst->tetro_x,
+                                tetris_inst->tetro_y,
+                                tetris_inst->tetro_rot,
+                                0);
+
+
+
+    while (tetris_inst->command_down > 0)
+    {
+      timer_reset(TIMER_1);
+      tetris_inst->timer_divider = 0;
+
+      if(!tetris_game_down(tetris_inst, field))
+      { // Game over
+        for (;;);
+      }
+
+      if (tetris_inst->command_down > 0)
+        tetris_inst->command_down--;
     }
 
-    if (tetris_inst->command_down > 0)
-      tetris_inst->command_down--;
+    tetris_game_place_tetromino(field, tetris_inst->tetro,
+                                tetris_inst->tetro_x,
+                                tetris_inst->tetro_y,
+                                tetris_inst->tetro_rot,
+                                tetris_inst->tetro);
+
+    tetris_game_send(tetris_inst);
+
+    if (tetris_inst->command_down == 0 && tetris_inst->command_move == 0
+        && tetris_inst->command_rotate == 0)
+      break;
   }
-
-  tetris_game_place_tetromino(field, tetris_inst->tetro,
-                              tetris_inst->tetro_x,
-                              tetris_inst->tetro_y,
-                              tetris_inst->tetro_rot,
-                              tetris_inst->tetro);
-
-  tetris_game_send(tetris_inst);
 }
 
 // --- Callbacks --------------------------------------------------------------
@@ -262,7 +271,7 @@ tetris_game_down (tetris_t *tetris, field_t *field)
     field_item_t *item = tetris_field_item_get_at(field, 0, 0);
     for (uint8_t i = TETRIS_WIDTH * TETRIS_TOP_HIDDEN; i-- >0; )
     {
-      if(!tetris_field_item_is_empty(item))
+      if(!tetris_field_item_is_empty(item++))
         return 0; // Top field was used -> game over
     }
 
@@ -604,13 +613,16 @@ tetris_game_send_next_tetromino (tetris_t *tetris)
   }
 
   // Draw the next tetromino
-  const int8_t x_offset = (int8_t) TETROMINO_INIT_POS[tetromino][0] + 2;
+  const int8_t x_tetro_offset = (int8_t) TETROMINO_INIT_POS[tetromino][0];
+  const int8_t y_tetro_offset = (int8_t) TETROMINO_INIT_POS[tetromino][1];
   const int8_t *tetroimino_fields = TETROMINO[tetromino];
   const char c = TETROMINO_CHAR[tetromino];
   for (uint8_t i = 4; i-- > 0;)
   {
-    int8_t fx = (int8_t) TETRIS_SCORE_X + x_offset + *(tetroimino_fields++);
-    int8_t fy = (int8_t) y_offset - 2 + *(tetroimino_fields++);
+    int8_t fx = (int8_t) TETRIS_SCORE_X + *(tetroimino_fields++) + 3;
+    int8_t fy = (int8_t) y_offset + *(tetroimino_fields++) - 3;
+    fx += x_tetro_offset;
+    fy += y_tetro_offset;
 
     uart_send_move_to((uint8_t) fy, (uint8_t) fx);
     uart_send(c);

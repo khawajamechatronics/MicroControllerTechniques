@@ -19,7 +19,8 @@ static tetris_t *tetris_inst;
 // --- Game -------------------------------------------------------------------
 
 void
-tetris_game_init (tetris_t *tetris)
+tetris_game_init (tetris_t *tetris, uint8_t *cmd_buffer,
+                  uint8_t cmd_buffer_size)
 {
   tetris_inst = tetris;
 
@@ -39,11 +40,12 @@ tetris_game_init (tetris_t *tetris)
   tetris->score_factor = 0;
   tetris->t_spin = 0;
 
-  tetris->command_down = 0;
-  tetris->command_rotate = 0;
-  tetris->command_move = 0;
+  tetris->command_buffer.buffer = cmd_buffer;
+  tetris->command_buffer.buffer_size = cmd_buffer_size;
+  tetris->command_buffer.start = 0;
+  tetris->command_buffer.fill = 0;
 
-  memset(&tetris->buffer, 0, sizeof(field_t));
+  memset(&tetris->game_field, TETRIS_FIELD_EMPTY, sizeof(field_t));
 
   tetris_game_new_tetromino();
 }
@@ -72,22 +74,49 @@ tetris_game_process (void)
                                 tetris_inst->tetro_x,
                                 tetris_inst->tetro_y,
                                 tetris_inst->tetro_rot,
-                                0);
+                                TETRIS_FIELD_EMPTY);
 
-
-
-    while (tetris_inst->command_down > 0)
+    while (!buffer_is_empty(&tetris_inst->command_buffer))
     {
-      timer_reset(TIMER_1);
-      tetris_inst->timer_divider = 0;
+      switch ((tetris_command_t) buffer_dequeue(&tetris_inst->command_buffer))
+      {
+      case COMMAND_DOWN:
+        timer_reset(TIMER_1);
+        tetris_inst->timer_divider = 0;
 
-      if(!tetris_game_down(tetris_inst, field))
-      { // Game over
-        for (;;);
+        if (tetris_game_down(tetris_inst, field) == 0)
+        {
+          tetris_on_game_over();
+        }
+        break;
+      case COMMAND_DROP:
+        {
+          uint8_t result;
+
+          timer_reset(TIMER_1);
+          tetris_inst->timer_divider = 0;
+
+          do
+          {
+            result = tetris_game_down(tetris_inst, field);
+          } while(result == 1);
+
+          if (result == 0)
+          {
+            tetris_on_game_over();
+          }
+          break;
+        }
+      case COMMAND_LEFT:
+        tetris_game_move(tetris_inst, field, 0);
+        break;
+      case COMMAND_RIGHT:
+        tetris_game_move(tetris_inst, field, 1);
+        break;
+      case COMMAND_ROTATE:
+        tetris_game_rotate(tetris_inst, field);
+        break;
       }
-
-      if (tetris_inst->command_down > 0)
-        tetris_inst->command_down--;
     }
 
     tetris_game_place_tetromino(field, tetris_inst->tetro,
@@ -98,8 +127,7 @@ tetris_game_process (void)
 
     tetris_game_send(tetris_inst);
 
-    if (tetris_inst->command_down == 0 && tetris_inst->command_move == 0
-        && tetris_inst->command_rotate == 0)
+    if (buffer_is_empty(&tetris_inst->command_buffer))
       break;
   }
 }
@@ -114,8 +142,17 @@ tetris_on_timer (void)
   else
     tetris_inst->timer_divider = 0;
 
-  if (tetris_inst->command_down == 0)
-    tetris_on_command(COMMAND_DOWN);
+  for (uint8_t i = buffer_get_fill(&tetris_inst->command_buffer); i-- > 0;)
+  {
+    uint8_t *command = buffer_get_at(&tetris_inst->command_buffer, i);
+    if (*((tetris_command_t*)command) == COMMAND_DOWN
+        || *((tetris_command_t*)command) == COMMAND_DROP) {
+      return 0; // Down command is already queued
+    }
+  }
+
+  if (!buffer_is_full(&tetris_inst->command_buffer))
+    buffer_enqueue(&tetris_inst->command_buffer, COMMAND_DOWN);
 
   // Wake up CPU to update the game field
   return 1;
@@ -179,6 +216,10 @@ tetris_on_key (buffer_t *buffer)
         tetris_on_command(COMMAND_RIGHT);
         wake_cpu = 1;
         break;
+      case KEY_UP:
+        tetris_on_command(COMMAND_ROTATE);
+        wake_cpu = 1;
+        break;
       case KEY_DOWN:
         tetris_on_command(COMMAND_DOWN);
         wake_cpu = 1;
@@ -200,38 +241,57 @@ tetris_on_key (buffer_t *buffer)
 static void
 tetris_on_command (tetris_command_t command)
 {
-  switch (command)
-  {
-  case COMMAND_DROP:
-    // The drop command is emulated with TETRIS_HEIGHT down commands
-    tetris_inst->command_down = TETRIS_HEIGHT;
-    break;
-  case COMMAND_LEFT:
-    tetris_inst->command_move--;
-    if (tetris_inst->command_move < (int8_t) -TETRIS_WIDTH)
-      tetris_inst->command_move = -(int8_t) TETRIS_WIDTH;
-    break;
-  case COMMAND_RIGHT:
-    tetris_inst->command_move++;
-    if (tetris_inst->command_move > (int8_t) TETRIS_WIDTH)
-      tetris_inst->command_move = (int8_t) TETRIS_WIDTH;
-    break;
-  case COMMAND_ROTATE:
-    tetris_inst->command_rotate++;
-    if (tetris_inst->command_rotate >= 8)
-      tetris_inst->command_rotate -= 4;
-    break;
-  case COMMAND_DOWN:
-    tetris_inst->command_down++;
-    if (tetris_inst->command_down > TETRIS_HEIGHT)
-      tetris_inst->command_down = TETRIS_HEIGHT;
-    break;
-  default:
-    break; //Ignore
-  }
+  if (buffer_is_full(&tetris_inst->command_buffer))
+    return;
+
+  buffer_enqueue(&tetris_inst->command_buffer, command);
+}
+
+static void
+tetris_on_game_over (void)
+{
+  timer_stop(TIMER_1);
+  for (;;); // Loop forever
 }
 
 // --- Game -------------------------------------------------------------------
+
+static void
+tetris_game_move (tetris_t *tetris, field_t *field, uint8_t direction)
+{
+  uint8_t x = tetris->tetro_x;
+  if (direction == 0)
+  {
+    if (x <= 0)
+      return;
+    x--;
+  } else {
+    if (x >= TETRIS_WIDTH - 1)
+      return;
+    x++;
+  }
+
+  if (tetris_game_check_collision(field, tetris->tetro, x, tetris->tetro_y,
+                                  tetris->tetro_rot))
+  {
+    return;
+  }
+
+  tetris->tetro_x = x;
+}
+
+static void
+tetris_game_rotate (tetris_t *tetris, field_t *field)
+{
+  uint8_t rot = (tetris->tetro_rot + 1) & 0x03;
+  if (tetris_game_check_collision(field, tetris->tetro, tetris->tetro_x,
+                                  tetris->tetro_y, rot))
+  {
+    return;
+  }
+
+  tetris->tetro_rot = rot;
+}
 
 static __inline void
 tetris_game_new_tetromino (void)
@@ -252,7 +312,7 @@ tetris_game_speedup (void)
   timer_set_interval(TIMER_1, interval - (interval >> 3));
 }
 
-static __inline bool_t
+static __inline uint8_t
 tetris_game_down (tetris_t *tetris, field_t *field)
 {
   uint8_t y = tetris->tetro_y + 1;
@@ -278,11 +338,10 @@ tetris_game_down (tetris_t *tetris, field_t *field)
     // Choose next tetromino
     tetris_game_new_tetromino();
 
-    // Cancel all 'down' commands
-    tetris->command_down = 0;
+    uint8_t cleared = tetris_field_clear_full_lines(field);
+    tetris_game_update_score(tetris, cleared, tetris->t_spin);
 
-    //uint8_t cleared = tetris_field_clear_full_lines(field);
-    //tetris_game_update_score(tetris, cleared, tetris->t_spin);
+    return 2;
   } else {
     tetris->tetro_y++;
   }
@@ -293,19 +352,15 @@ tetris_game_down (tetris_t *tetris, field_t *field)
 static __inline uint8_t
 tetris_field_clear_full_lines (field_t *field)
 {
-  findex_t y;
-  findex_t x;
-  findex_t dy;
   uint8_t lines_cleared = 0;
 
   // Update from bottom up
-  for (y = TETRIS_HEIGHT; y-- > 0;)
+  for (findex_t y = TETRIS_HEIGHT; y-- > 0;)
   {
     // Check each item in row
-    for (x = TETRIS_WIDTH; x-- > 0;)
+    for (findex_t x = TETRIS_WIDTH; x-- > 0;)
     {
       field_item_t *item = tetris_field_item_get_at(field, x, y);
-
       if (tetris_field_item_is_empty(item))
         goto next_row;
     }
@@ -313,9 +368,11 @@ tetris_field_clear_full_lines (field_t *field)
     lines_cleared++;
 
     // Row is full -> drop rows from bottom to top
-    for (dy = y + 1; dy-- > 0;)
+    for (findex_t dy = y + 1; dy > 0;)
     {
-      for (x = TETRIS_WIDTH; x-- > 0;)
+      dy--;
+
+      for (findex_t x = TETRIS_WIDTH; x-- > 0;)
       {
         findex_t index = tetris_field_item_get_index(x, dy);
 
@@ -325,13 +382,13 @@ tetris_field_clear_full_lines (field_t *field)
         }
         else
         {
-          findex_t upper_index = tetris_field_item_get_index(x, dy - 1);
-          field_item_t *upper_item = tetris_field_item_get(field, upper_index);
-          tetris_field_item_set(field, index,
-                                tetris_field_item_get_tetromino(upper_item));
+          field_item_t *upper_item = tetris_field_item_get_at(field, x, dy - 1);
+          tetris_field_item_set(field, index, *upper_item);
         }
       }
     }
+
+    y++; // Re-check this row
 
 next_row:
     ;
@@ -399,6 +456,9 @@ tetris_game_check_collision (field_t *field, tetromino_t tetromino,
     if(!tetris_check_bounds(fx, fy))
       return 1;
 
+    if (fy < 0) // Ignore if higher than field
+      continue;
+
     field_item_t *item = tetris_field_item_get_at(field, (uint8_t) fx,
                                                   (uint8_t) fy);
     if (!tetris_field_item_is_empty(item))
@@ -422,6 +482,9 @@ tetris_game_place_tetromino (field_t *field, tetromino_t tetromino,
     if(!tetris_check_bounds(fx, fy))
       return 0;
 
+    if (fy < 0) // Ignore if higher than field
+      continue;
+
     findex_t iindex = tetris_field_item_get_index((uint8_t) fx, (uint8_t) fy);
     tetris_field_item_set(field, iindex, value);
   }
@@ -434,17 +497,7 @@ tetris_game_place_tetromino (field_t *field, tetromino_t tetromino,
 static __inline field_t*
 tetris_field_get_current (tetris_t *tetris)
 {
-  return &tetris->buffer;
-}
-
-static __inline void
-tetris_field_update (tetris_t *tetris) {
-  field_t *field = tetris_field_get_current(tetris);
-
-  // Clear updated flags
-  findex_t index;
-  for (index = TETRIS_WIDTH * TETRIS_HEIGHT; index-- > 0;)
-    field->data[index] &= ~TETRIS_FIELD_UPDATED;
+  return &tetris->game_field;
 }
 
 // --- Item -------------------------------------------------------------------
@@ -472,13 +525,7 @@ tetris_field_item_get (field_t *field, findex_t index)
 static __inline tetromino_t
 tetris_field_item_get_tetromino (field_item_t *item)
 {
-  return (tetromino_t) (*item & ~(TETRIS_FIELD_UPDATED | TETRIS_FIELD_TEMP));
-}
-
-static __inline tetromino_t
-tetris_field_item_get_value (field_item_t *item)
-{
-  return (tetromino_t) (*item & ~TETRIS_FIELD_UPDATED);
+  return (tetromino_t) (*item & ~TETRIS_FIELD_EMPTY);
 }
 
 static __inline void
@@ -486,19 +533,13 @@ tetris_field_item_set (field_t *field, findex_t index,
                        field_item_t value)
 {
   field_item_t *item = tetris_field_item_get(field, index);
-  bool_t changed = (tetris_field_item_get_value(item) != value);
-
-  if (!changed)
-    return;
-
-  // Update value
-  *item = value | TETRIS_FIELD_UPDATED;
+  *item = value;
 }
 
 static __inline bool_t
 tetris_field_item_is_empty (field_item_t *item)
 {
-  return (tetris_field_item_get_tetromino(item) == TETRIS_FIELD_EMPTY);
+  return (*item == TETRIS_FIELD_EMPTY);
 }
 
 // --- UART IO ----------------------------------------------------------------

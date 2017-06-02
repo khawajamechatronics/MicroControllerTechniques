@@ -15,9 +15,7 @@
 // Definitions
 // ----------------------------------------------------------------------------
 
-#define TETRIS_FIELD_EMPTY 0x00
-#define TETRIS_FIELD_UPDATED 0x80
-#define TETRIS_FIELD_TEMP 0x40
+#define TETRIS_FIELD_EMPTY 0x80
 
 // ----------------------------------------------------------------------------
 // Types
@@ -49,27 +47,27 @@ static const int8_t T_TETROMINO[4][4][2] = { // 'T' tetromino
 };
 static const int8_t Z_TETROMINO[4][4][2] = { // 'Z' tetromino
   {{-1, -1}, {0, -1}, {0, 0}, {1, 0}}, // Horiz
-  {{1, -1}, {1, 0}, {0, 0}, {0, -1}}, // Vert
+  {{1, -1}, {1, 0}, {0, 0}, {0, 1}}, // Vert
   {{-1, -1}, {0, -1}, {0, 0}, {1, 0}}, // Horiz
-  {{1, -1}, {1, 0}, {0, 0}, {0, -1}} // Vert
+  {{1, -1}, {1, 0}, {0, 0}, {0, 1}} // Vert
 };
 static const int8_t Z_INV_TETROMINO[4][4][2] = { // inverse 'Z' tetromino
   {{1, -1}, {0, -1}, {0, 0}, {-1, 0}}, // Horiz
-  {{-1, -1}, {-1, 0}, {0, 0}, {1, 0}}, // Vert
+  {{-1, -1}, {-1, 0}, {0, 0}, {0, 1}}, // Vert
   {{1, -1}, {0, -1}, {0, 0}, {-1, 0}}, // Horiz
-  {{-1, -1}, {-1, 0}, {0, 0}, {1, 0}} // Vert
+  {{-1, -1}, {-1, 0}, {0, 0}, {0, 1}} // Vert
 };
 static const int8_t L_TETROMINO[4][4][2] = { // 'L' tetromino
-  {{0, -1}, {0, 0}, {1, 0}, {2, 0}}, // Down
+  {{0, 1}, {0, 0}, {1, 0}, {2, 0}}, // Down
   {{-1, 0}, {0, 0}, {0, 1}, {0, 2}}, // Left
-  {{-2, 0}, {-1, 0}, {0, 0}, {0, 1}}, // Up
-  {{0, -2}, {0, -1}, {0, 0}, {-1, 0}} // Right
+  {{-2, 0}, {-1, 0}, {0, 0}, {0, -1}}, // Up
+  {{0, -2}, {0, -1}, {0, 0}, {1, 0}} // Right
 };
 static const int8_t L_INV_TETROMINO[4][4][2] = { // inverse 'L' tetromino
   {{-2, 0}, {-1, 0}, {0, 0}, {0, 1}}, // Down
   {{-1, 0}, {0, 0}, {0, -1}, {0, -2}}, // Left
-  {{0, -1}, {0, 0}, {1, 0}, {2, 0}}, // Up
-  {{0, 0}, {1, 0}, {0, -1}, {0, -2}} // Right
+  {{2, 0}, {1, 0}, {0, 0}, {0, -1}}, // Up
+  {{0, 2}, {0, 1}, {0, 0}, {1, 0}} // Right
 };
 static const int8_t O_TETROMINO[4][4][2] = { // '[]' tetromino
   {{0, 0}, {1, 0}, {1, 1}, {0, 1}},
@@ -103,7 +101,7 @@ static const uint8_t TETROMINO_INIT_POS[7][2] = {
   {4, 0}, // 'T' tetromino
   {4, 1}, // 'Z' tetromino
   {4, 1}, // 'Z' inv tetromino
-  {3, 1}, // 'L' tetromino
+  {3, 0}, // 'L' tetromino
   {5, 0}, // 'L' inv tetromino
   {3, 0} // 'O' tetromino
 };
@@ -148,12 +146,14 @@ tetris_game_new_tetromino (void);
  * Updates the game field and drops the tetromino.
  * A value of 0 is returned if the tetromino is placed outside the normal
  * game area.
+ * A value of 1 indicates a successful drop by one line.
+ * A value of 2 indicates that the ground was hit and the tetromino not moved.
  *
  * @param tetris The main tetris instance
  * @param field The current game field
- * @return false if the game was lost
+ * @return false if the game was lost, 1 or 2 otherwise
  */
-static __inline bool_t
+static __inline uint8_t
 tetris_game_down (tetris_t *tetris, field_t *field);
 
 
@@ -222,6 +222,27 @@ tetris_game_place_tetromino (field_t *field, tetromino_t tetromino,
                              uint8_t x, uint8_t y, uint8_t rotation,
                              uint8_t value);
 
+/**
+ * Rotates the current tetromino if the target fields are free.
+ *
+ * @param tetris The tetris instance
+ * @param field The current game field
+ */
+static void
+tetris_game_rotate(tetris_t *tetris, field_t *field);
+
+/**
+ * Moves the current tetromino if the target fields are free.
+ * A direction of 0 indicates a move to the left,
+ * a value of 1 corresponds to a movement to the right.
+ *
+ * @param tetris The tetris instance
+ * @param field The current tetris field
+ * @param direction The direction to move to
+ */
+static void
+tetris_game_move(tetris_t *tetris, field_t *field, uint8_t direction);
+
 // --- Callback methods -------------------------------------------------------
 
 /**
@@ -246,6 +267,12 @@ tetris_on_key (buffer_t *buffer);
 static void
 tetris_on_command (tetris_command_t command);
 
+/**
+ * Callback method for game over.
+ */
+static void
+tetris_on_game_over (void);
+
 // --- Field ------------------------------------------------------------------
 
 /**
@@ -256,14 +283,6 @@ tetris_on_command (tetris_command_t command);
  */
 static __inline field_t*
 tetris_field_get_current (tetris_t *tetris);
-
-/**
- * Clears the update flags of all fields.
- *
- * @param tetris The main tetris instance
- */
-static __inline void
-tetris_field_update (tetris_t *tetris);
 
 // --- Item -------------------------------------------------------------------
 
@@ -368,6 +387,8 @@ tetris_game_send_boxline (uint8_t count, uint8_t edge, uint8_t fill);
 
 /**
  * Checks if the coordinate is in the tetris field.
+ * If the y coordinate exceeds the height of the tetris field
+ * the coordinate might be considered valid.
  *
  * @param x The x location
  * @param y The y location
@@ -385,7 +406,7 @@ __attribute__((always_inline))
 __inline bool_t
 tetris_check_bounds (int8_t x, int8_t y)
 {
-  return ((x >= 0) && (y >= 0) && (x < TETRIS_WIDTH) && (y < TETRIS_HEIGHT));
+  return ((x >= 0) && (x < TETRIS_WIDTH) && (y < TETRIS_HEIGHT));
 }
 
 #endif // !__TETRIS_P_H

@@ -30,6 +30,7 @@ setup (void);
 
 static uint8_t uart_r_buffer[UART_R_BUFFER_SIZE];
 static uint8_t uart_t_buffer[UART_T_BUFFER_SIZE];
+static uint8_t command_buffer[TETRIS_CMD_BUFFER_SIZE];
 
 static tetris_t tetris;
 
@@ -116,7 +117,7 @@ main_uart_received (buffer_t *buffer)
       srand(timer_get_value(TIMER_2));
 
       // Initialize the game
-      tetris_game_init(&tetris);
+      tetris_game_init(&tetris, command_buffer, TETRIS_CMD_BUFFER_SIZE);
 
       // Clear screen
       uart_send_move_to(0, 1);

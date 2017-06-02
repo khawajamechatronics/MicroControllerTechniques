@@ -8,6 +8,8 @@
 #include "def.h"
 #include "config.h"
 
+#include "buffer.h"
+
 // ----------------------------------------------------------------------------
 // Types
 // ----------------------------------------------------------------------------
@@ -24,11 +26,11 @@ typedef enum {
 } tetromino_t;
 
 typedef enum {
-  COMMAND_LEFT,
-  COMMAND_RIGHT,
-  COMMAND_ROTATE,
-  COMMAND_DOWN,
-  COMMAND_DROP
+  COMMAND_LEFT = 0x01,
+  COMMAND_RIGHT = 0x02,
+  COMMAND_ROTATE = 0x03,
+  COMMAND_DOWN = 0x04,
+  COMMAND_DROP = 0x05
 } tetris_command_t;
 
 typedef struct
@@ -38,7 +40,7 @@ typedef struct
 
 typedef struct
 {
-  field_t buffer;
+  field_t game_field;
   uint8_t timer_divider;
 
   tetromino_t tetro;
@@ -56,9 +58,7 @@ typedef struct
   uint8_t score_factor;
   uint8_t t_spin;
 
-  uint8_t command_down;
-  int8_t command_rotate;
-  int8_t command_move;
+  buffer_t command_buffer;
 } tetris_t;
 
 // ----------------------------------------------------------------------------
@@ -67,11 +67,15 @@ typedef struct
 
 /**
  * Initializes the tetris game an it's game field.
+ * The provided command buffer is used to store user input.
  *
  * @param tetris The main tetris instance to initialize
+ * @param cmd_buffer The command buffer to use
+ * @param cmd_buffer_size The size of the command buffer
  */
 void
-tetris_game_init (tetris_t *tetris);
+tetris_game_init (tetris_t *tetris, uint8_t *cmd_buffer,
+                  uint8_t cmd_buffer_size);
 
 /**
  * Starts the tetris game and the needed timer.

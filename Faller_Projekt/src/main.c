@@ -105,10 +105,10 @@ main_send_welcome (void)
 }
 
 static bool_t
-main_uart_received (uart_buffer_t *buffer)
+main_uart_received (buffer_t *buffer)
 {
-  while (!uart_buffer_is_empty(buffer)) {
-    if (uart_buffer_dequeue(buffer) == KEY_ENTER) {
+  while (!buffer_is_empty(buffer)) {
+    if (buffer_dequeue(buffer) == KEY_ENTER) {
       timer_stop(TIMER_1);
       timer_stop(TIMER_2);
 

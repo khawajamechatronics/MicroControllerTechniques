@@ -122,20 +122,20 @@ tetris_on_timer (void)
 }
 
 static bool_t
-tetris_on_key (uart_buffer_t *buffer)
+tetris_on_key (buffer_t *buffer)
 {
   bool_t wake_cpu = 0;
   for (;;)
   {
-    uint8_t fill = uart_buffer_get_fill(buffer);
+    uint8_t fill = buffer_get_fill(buffer);
     if (fill == 0)
       break;
 
-    uint8_t *first_char = uart_buffer_get_at(buffer, 0);
+    uint8_t *first_char = buffer_get_at(buffer, 0);
     if (*first_char != KEY_ESCAPE)
     {
       // Remove character
-      uart_buffer_dequeue(buffer);
+      buffer_dequeue(buffer);
 
       // No escape sequence
       switch (*first_char)
@@ -152,11 +152,11 @@ tetris_on_key (uart_buffer_t *buffer)
     }
     else if (fill >= 2)
     {
-      uint8_t *second_char = uart_buffer_get_at(buffer, 1);
+      uint8_t *second_char = buffer_get_at(buffer, 1);
       if (*second_char != '[') {
         // Remove characters
-        uart_buffer_dequeue(buffer);
-        uart_buffer_dequeue(buffer);
+        buffer_dequeue(buffer);
+        buffer_dequeue(buffer);
 
         return wake_cpu;
       }
@@ -165,11 +165,11 @@ tetris_on_key (uart_buffer_t *buffer)
         return wake_cpu;
 
       // Remove characters 'ESC' '['
-      uart_buffer_dequeue(buffer);
-      uart_buffer_dequeue(buffer);
+      buffer_dequeue(buffer);
+      buffer_dequeue(buffer);
 
       // Arrow key escape sequence
-      switch (uart_buffer_dequeue(buffer))
+      switch (buffer_dequeue(buffer))
       {
       case KEY_LEFT:
         tetris_on_command(COMMAND_LEFT);

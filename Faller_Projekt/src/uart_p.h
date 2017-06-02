@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-#include "inc/uart_buffer.h"
+#include "inc/buffer.h"
 #include "inc/uart.h"
 
 // ----------------------------------------------------------------------------
@@ -57,12 +57,12 @@
 // ----------------------------------------------------------------------------
 
 typedef struct {
-  uart_buffer_t r_buffer;
-  uart_buffer_t t_buffer;
+  buffer_t r_buffer;
+  buffer_t t_buffer;
 
   bool_t t_wait;
 
-  bool_t (*r_callback)(uart_buffer_t *buffer);
+  bool_t (*r_callback)(buffer_t *buffer);
 } uart_t;
 
 #endif // !__UART_P_H

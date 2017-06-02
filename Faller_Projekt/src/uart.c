@@ -1,12 +1,13 @@
 // (c) Tobias Faller 2017
 
+#include <inc/buffer.h>
 #include <msp430.h>
 #include <stdint.h>
 
 #include "inc/def.h"
 #include "inc/config.h"
 
-#include "inc/uart_buffer.h"
+#include "inc/buffer.h"
 #include "inc/uart.h"
 
 #include "uart_p.h"
@@ -59,7 +60,7 @@ uart_init (uint8_t *r_buffer, uint16_t r_size,
 }
 
 void
-uart_set_receive_callback (bool_t (*callback)(uart_buffer_t *buffer))
+uart_set_receive_callback (bool_t (*callback)(buffer_t *buffer))
 {
   uart.r_callback = callback;
 }
@@ -67,7 +68,7 @@ uart_set_receive_callback (bool_t (*callback)(uart_buffer_t *buffer))
 void
 uart_send (uint8_t c)
 {
-  if (uart_buffer_is_full(&uart.t_buffer)) {
+  if (buffer_is_full(&uart.t_buffer)) {
     // Enable reentrant interrupts and wait until buffer is empty
     uart.t_wait = UART_SEND_WAITING;
 
@@ -75,11 +76,11 @@ uart_send (uint8_t c)
       __bis_SR_register(GIE + CPUOFF);
   }
 
-  uart_buffer_enqueue(&uart.t_buffer, c);
+  buffer_enqueue(&uart.t_buffer, c);
 
   if (!(UCA0STAT & UCBUSY)) {
     // Send next character (The interrupt flag is automatically cleared)
-    UCA0TXBUF = uart_buffer_dequeue(&uart.t_buffer);
+    UCA0TXBUF = buffer_dequeue(&uart.t_buffer);
   }
 }
 
@@ -230,9 +231,9 @@ __interrupt void
 uart_int_tx (void)
 {
   // Check for more data to transmit
-  if (!uart_buffer_is_empty(&uart.t_buffer)) {
+  if (!buffer_is_empty(&uart.t_buffer)) {
     // Send next character (The interrupt flag is automatically cleared)
-    UCA0TXBUF = uart_buffer_dequeue(&uart.t_buffer);
+    UCA0TXBUF = buffer_dequeue(&uart.t_buffer);
     return;
   }
 
@@ -255,12 +256,12 @@ uart_int_rx (void)
   // Read character (The interrupt flag is automatically cleared)
   uint8_t received_char = UCA0RXBUF;
 
-  if (uart_buffer_is_full(&uart.r_buffer)) {
+  if (buffer_is_full(&uart.r_buffer)) {
     // An buffer overflow occurred -> Discard all old data
-    uart_buffer_clear(&uart.r_buffer);
+    buffer_clear(&uart.r_buffer);
   }
 
-  uart_buffer_enqueue(&uart.r_buffer, received_char);
+  buffer_enqueue(&uart.r_buffer, received_char);
 
   if (uart.r_callback != 0 && uart.r_callback(&uart.r_buffer))
     __bic_SR_register_on_exit(CPUOFF);

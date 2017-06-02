@@ -8,6 +8,7 @@
 #include "inc/def.h"
 #include "inc/config.h"
 
+#include "inc/buffer.h"
 #include "inc/tetris.h"
 
 // ----------------------------------------------------------------------------
@@ -235,7 +236,7 @@ tetris_on_timer (void);
  * @param buffer The buffer to read key data from
  */
 static bool_t
-tetris_on_key (uart_buffer_t *buffer);
+tetris_on_key (buffer_t *buffer);
 
 /**
  * Callback method for user / timer created command.

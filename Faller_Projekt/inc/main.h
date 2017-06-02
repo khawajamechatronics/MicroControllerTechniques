@@ -3,7 +3,7 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
-#include "uart_buffer.h"
+#include "buffer.h"
 
 /**
  * Prints a welcome message to the console after initializing it.
@@ -26,6 +26,6 @@ main_start_game (void);
  * @return true if the CPU should be resumed
  */
 static bool_t
-main_uart_received (uart_buffer_t *buffer);
+main_uart_received (buffer_t *buffer);
 
 #endif // !__MAIN_H

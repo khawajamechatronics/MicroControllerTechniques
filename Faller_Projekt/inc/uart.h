@@ -4,10 +4,11 @@
 #define __UART_H
 
 #include <stdint.h>
+
 #include "def.h"
 #include "config.h"
-#include "uart_buffer.h"
 
+#include "buffer.h"
 
 /**
  * Initializes the UART connection with the specified buffers.
@@ -101,6 +102,6 @@ uart_send_string (char *buffer);
  * @param callback The callback function to notify
  */
 void
-uart_set_receive_callback (bool_t (*callback)(uart_buffer_t *buffer));
+uart_set_receive_callback (bool_t (*callback)(buffer_t *buffer));
 
 #endif // !__UART_H

@@ -11,6 +11,7 @@
 #include "inc/timer.h"
 #include "inc/util.h"
 #include "inc/uart.h"
+#include "inc/highscore.h"
 
 #include "tetris_p.h"
 
@@ -87,6 +88,7 @@ tetris_game_process (void)
         if (tetris_game_down(tetris_inst, field) == 0)
         {
           tetris_on_game_over();
+          return;
         }
         break;
       case COMMAND_DROP:
@@ -104,6 +106,7 @@ tetris_game_process (void)
           if (result == 0)
           {
             tetris_on_game_over();
+            return;
           }
           break;
         }
@@ -251,7 +254,14 @@ static void
 tetris_on_game_over (void)
 {
   timer_stop(TIMER_1);
-  for (;;); // Loop forever
+  uart_set_receive_callback(0);
+
+  // Re-use the main memory area for temporary storage
+  highscore_init(tetris_inst->score,
+                 (highscore_entry_t*) &tetris_inst->game_field);
+
+  // Switch to highscore view
+  view = VIEW_HIGHSCORE_NEW;
 }
 
 // --- Game -------------------------------------------------------------------

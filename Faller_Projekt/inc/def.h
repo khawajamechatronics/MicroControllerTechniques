@@ -7,6 +7,14 @@
 
 typedef uint8_t bool_t;
 
+typedef enum {
+  VIEW_GAME = 0x01,
+  VIEW_HIGHSCORE = 0x02,
+  VIEW_HIGHSCORE_NEW = 0x03
+} view_t;
+
+extern view_t view;
+
 #define KEY_ESCAPE 0x1B
 
 #define KEY_ENTER 0x0D

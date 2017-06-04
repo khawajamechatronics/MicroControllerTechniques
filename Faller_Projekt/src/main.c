@@ -14,6 +14,7 @@
 #include "inc/uart.h"
 #include "inc/tetris.h"
 #include "inc/timer.h"
+#include "inc/highscore.h"
 #include "inc/main.h"
 
 // ----------------------------------------------------------------------------
@@ -34,6 +35,8 @@ static uint8_t command_buffer[TETRIS_CMD_BUFFER_SIZE];
 
 static tetris_t tetris;
 
+view_t view;
+
 int
 main (void)
 {
@@ -46,8 +49,22 @@ main (void)
     // Go into low power mode 0
     __bis_SR_register(CPUOFF);
 
-    // Compute the next state and transmit
-    tetris_game_process();
+    restart:
+    switch (view) {
+    case VIEW_GAME:
+      // Compute the next state and transmit
+      tetris_game_process();
+
+      if (view != VIEW_GAME)
+        goto restart; // Enter highscore mode
+      break;
+    case VIEW_HIGHSCORE:
+      highscore_process();
+
+      if (view == VIEW_GAME)
+        goto restart; // Enter game mode
+      break;
+    }
   }
 }
 
@@ -76,8 +93,6 @@ setup (void)
   uart_init(uart_r_buffer, UART_R_BUFFER_SIZE,
             uart_t_buffer, UART_T_BUFFER_SIZE);
 
-  uart_set_receive_callback(&main_uart_received);
-
   // Initialize timer to seed the RNG
   timer_init(TIMER_2);
   timer_set_divider(TIMER_2, TIMER_DIVIDER_1);
@@ -90,6 +105,8 @@ setup (void)
   timer_set_interval(TIMER_1, 0xF424); // 0.5 second
   timer_set_callback(TIMER_1, &main_send_welcome);
   timer_start(TIMER_1);
+
+  uart_set_receive_callback(&main_uart_received);
 }
 
 static bool_t
@@ -98,8 +115,10 @@ main_send_welcome (void)
   uart_send_terminal_init();
   uart_send_move_to(0, 1);
   uart_send_cls();
-  uart_send_string("Welcome to Tetris. Press enter to continue ...\r\n");
+  uart_send_string("Welcome to Tetris.\r\n");
   uart_send_string("Please set the resolution to at least 30x80 chars!\r\n");
+  uart_send_string("Press ENTER to continue ...\r\n");
+  uart_send_string("Press H to view the highscore table ...\r\n");
 
   // Don't wake the CPU
   return 0;
@@ -109,7 +128,9 @@ static bool_t
 main_uart_received (buffer_t *buffer)
 {
   while (!buffer_is_empty(buffer)) {
-    if (buffer_dequeue(buffer) == KEY_ENTER) {
+    uint8_t key = buffer_dequeue(buffer);
+    switch(key) {
+    case KEY_ENTER:
       timer_stop(TIMER_1);
       timer_stop(TIMER_2);
 
@@ -126,6 +147,17 @@ main_uart_received (buffer_t *buffer)
       tetris_game_start();
 
       // Wake up CPU to send the initial game field
+      view = VIEW_GAME;
+      return 1;
+    case 'H':
+      timer_stop(TIMER_1);
+      timer_stop(TIMER_2);
+
+      // Initialize highscore view
+      highscore_init(HIGHSCORE_SHOW, (highscore_entry_t*) &tetris.game_field);
+
+      // Wake up CPU to load the highscore list
+      view = VIEW_HIGHSCORE;
       return 1;
     }
   }

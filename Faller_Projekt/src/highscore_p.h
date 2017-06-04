@@ -16,7 +16,7 @@ highscore_exit (void);
  * @param seg_c true if segment c is cleared
  */
 void
-highscore_reset (bool_t seg_b, bool_t seg_c);
+highscore_reset_segment (bool_t seg_b, bool_t seg_c);
 
 /**
  * Callback function for user input.

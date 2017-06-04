@@ -154,7 +154,7 @@ main_uart_received (buffer_t *buffer)
       timer_stop(TIMER_2);
 
       // Initialize highscore view
-      highscore_init(HIGHSCORE_SHOW, (highscore_entry_t*) &tetris.game_field);
+      highscore_init(HIGHSCORE_SHOW, (highscore_state_t*) &tetris.game_field);
 
       // Wake up CPU to load the highscore list
       view = VIEW_HIGHSCORE;

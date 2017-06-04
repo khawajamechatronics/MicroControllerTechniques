@@ -42,7 +42,7 @@
 //#define UART_38K
 //#define UART_9K
 
-#define HIGHSCORE_LENGTH 10
-#define HIGHSCORE_NAME_LENGTH 40
+#define HIGHSCORE_LENGTH 4
+#define HIGHSCORE_NAME_LENGTH 10
 
 #endif // !__CONFIG_H

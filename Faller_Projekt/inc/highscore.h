@@ -9,18 +9,34 @@
  * Struct to hold a highscore entry comprising of a name and a score.
  */
 typedef struct {
-  uint8_t name[HIGHSCORE_NAME_LENGTH];
   uint32_t score;
-} highscore_entry_t;
+  uint8_t name[HIGHSCORE_NAME_LENGTH];
+  uint8_t name_length;
+} __attribute__((packed)) highscore_entry_t;
 
 /**
  * Struct to store highscore entries in sorted order.
  * The initialized field is set to 0 if the flash page is cleared.
  */
 typedef struct {
-  bool_t initialized;
   highscore_entry_t entries[HIGHSCORE_LENGTH];
-} highscore_t;
+  uint8_t entry_count;
+  uint8_t initialized;
+} __attribute__((packed)) highscore_t;
+
+/**
+ * Struct to store the current working data of the highscore view.
+ */
+typedef struct {
+  bool_t clear_shown;
+  bool_t enter_name_shown;
+
+  highscore_entry_t new_entry;
+
+  uint8_t next_id;
+  highscore_t *current_segment;
+  highscore_t *next_segment;
+} highscore_state_t;
 
 /**
  * Initializes the highscore list and shows a 'enter your name' dialog
@@ -33,7 +49,7 @@ typedef struct {
  *        player name
  */
 void
-highscore_init (uint32_t score, highscore_entry_t *working_area);
+highscore_init (uint32_t score, highscore_state_t *working_area);
 
 /**
  * Displays the current highscore view.
@@ -41,5 +57,43 @@ highscore_init (uint32_t score, highscore_entry_t *working_area);
  */
 void
 highscore_process (void);
+
+/**
+ * Returns true if the character is in the allowed range and can be displayed.
+ *
+ * @param c The character to check
+ * @return true if the character is valid
+ */
+bool_t
+highscore_is_char_allowed (uint8_t c);
+
+/**
+ * Returns pointer to the current data segments.
+ * The newer segment is written to the parameter current.
+ * The older segment is cleared and written to the parameter next.
+ *
+ * @param current The current data segment
+ * @param next The next data segment to write to
+ */
+void
+highscore_get_areas (highscore_t **current, highscore_t **next);
+
+/**
+ * Updates the highscore table by merging the new score.
+ *
+ * @param current The current highscore table
+ * @param next The highscore table to write to
+ */
+void
+highscore_update (highscore_t *current, highscore_t *next);
+
+/**
+ * Callback method for a UART key press.
+ *
+ * @param buffer The buffer which holds the data
+ * @return true if the CPU should be woken up
+ */
+bool_t
+highscore_on_key (buffer_t *buffer);
 
 #endif // !__HIGHSCORE_H

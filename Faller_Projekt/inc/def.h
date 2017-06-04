@@ -19,6 +19,7 @@ extern view_t view;
 
 #define KEY_ENTER 0x0D
 #define KEY_SPACE 0x20
+#define KEY_DELETE 0x7F
 
 // Prefixed with escape key
 #define KEY_UP 'A'

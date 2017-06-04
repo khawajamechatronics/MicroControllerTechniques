@@ -258,7 +258,7 @@ tetris_on_game_over (void)
 
   // Re-use the main memory area for temporary storage
   highscore_init(tetris_inst->score,
-                 (highscore_entry_t*) &tetris_inst->game_field);
+                 (highscore_state_t*) &tetris_inst->game_field);
 
   // Switch to highscore view
   view = VIEW_HIGHSCORE_NEW;

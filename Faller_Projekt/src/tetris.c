@@ -261,7 +261,7 @@ tetris_on_game_over (void)
                  (highscore_state_t*) &tetris_inst->game_field);
 
   // Switch to highscore view
-  view = VIEW_HIGHSCORE_NEW;
+  view = VIEW_HIGHSCORE;
 }
 
 // --- Game -------------------------------------------------------------------

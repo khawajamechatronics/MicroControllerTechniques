@@ -45,4 +45,14 @@
 #define HIGHSCORE_LENGTH 4
 #define HIGHSCORE_NAME_LENGTH 10
 
+#define HIGHSCORE_INPUT_X 10
+#define HIGHSCORE_INPUT_Y 2
+
+#define HIGHSCORE_X 10
+#define HIGHSCORE_Y 2
+
+#define HIGHSCORE_BORDER_V '|'
+#define HIGHSCORE_BORDER_H '-'
+#define HIGHSCORE_BORDER_C '+'
+
 #endif // !__CONFIG_H

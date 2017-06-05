@@ -9,17 +9,19 @@ typedef uint8_t bool_t;
 
 typedef enum {
   VIEW_GAME = 0x01,
-  VIEW_HIGHSCORE = 0x02,
-  VIEW_HIGHSCORE_NEW = 0x03
+  VIEW_HIGHSCORE = 0x02
 } view_t;
 
 extern view_t view;
+
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 #define KEY_ESCAPE 0x1B
 
 #define KEY_ENTER 0x0D
 #define KEY_SPACE 0x20
-#define KEY_DELETE 0x7F
+#define KEY_DELETE 0x08
+//#define KEY_DELETE 0x7F
 
 // Prefixed with escape key
 #define KEY_UP 'A'

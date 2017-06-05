@@ -117,6 +117,7 @@ main_send_welcome (void)
   uart_send_cls();
   uart_send_string("Welcome to Tetris.\r\n");
   uart_send_string("Please set the resolution to at least 30x80 chars!\r\n");
+  uart_send_string("\r\n");
   uart_send_string("Press ENTER to continue ...\r\n");
   uart_send_string("Press H to view the highscore table ...\r\n");
 
@@ -131,6 +132,7 @@ main_uart_received (buffer_t *buffer)
     uint8_t key = buffer_dequeue(buffer);
     switch(key) {
     case KEY_ENTER:
+    case 'T':
       timer_stop(TIMER_1);
       timer_stop(TIMER_2);
 
@@ -150,6 +152,7 @@ main_uart_received (buffer_t *buffer)
       view = VIEW_GAME;
       return 1;
     case 'H':
+    case 'h':
       timer_stop(TIMER_1);
       timer_stop(TIMER_2);
 

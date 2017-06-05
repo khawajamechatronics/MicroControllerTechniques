@@ -16,7 +16,7 @@ typedef struct {
 
 /**
  * Struct to store highscore entries in sorted order.
- * The initialized field is set to 0 if the flash page is cleared.
+ * The initialized field is set to 0xFF if the flash page is cleared.
  */
 typedef struct {
   highscore_entry_t entries[HIGHSCORE_LENGTH];
@@ -57,43 +57,5 @@ highscore_init (uint32_t score, highscore_state_t *working_area);
  */
 void
 highscore_process (void);
-
-/**
- * Returns true if the character is in the allowed range and can be displayed.
- *
- * @param c The character to check
- * @return true if the character is valid
- */
-bool_t
-highscore_is_char_allowed (uint8_t c);
-
-/**
- * Returns pointer to the current data segments.
- * The newer segment is written to the parameter current.
- * The older segment is cleared and written to the parameter next.
- *
- * @param current The current data segment
- * @param next The next data segment to write to
- */
-void
-highscore_get_areas (highscore_t **current, highscore_t **next);
-
-/**
- * Updates the highscore table by merging the new score.
- *
- * @param current The current highscore table
- * @param next The highscore table to write to
- */
-void
-highscore_update (highscore_t *current, highscore_t *next);
-
-/**
- * Callback method for a UART key press.
- *
- * @param buffer The buffer which holds the data
- * @return true if the CPU should be woken up
- */
-bool_t
-highscore_on_key (buffer_t *buffer);
 
 #endif // !__HIGHSCORE_H

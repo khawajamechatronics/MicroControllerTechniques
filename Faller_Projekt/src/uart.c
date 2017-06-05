@@ -147,23 +147,23 @@ uart_send_number_u32 (uint32_t value, bool_t leading_zero)
 {
   uint8_t v;
 
-  for (v = '0'; value >= 1000000000; value -= 10000, ++v);
+  for (v = '0'; value >= 1000000000; value -= 1000000000, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  for (v = '0'; value >= 100000000; value -= 10000, ++v);
+  for (v = '0'; value >= 100000000; value -= 100000000, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  for (v = '0'; value >= 10000000; value -= 10000, ++v);
+  for (v = '0'; value >= 10000000; value -= 10000000, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  for (v = '0'; value >= 1000000; value -= 10000, ++v);
+  for (v = '0'; value >= 1000000; value -= 1000000, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 
-  for (v = '0'; value >= 100000; value -= 10000, ++v);
+  for (v = '0'; value >= 100000; value -= 100000, ++v);
   if (leading_zero || v != '0')
     uart_send(v);
 

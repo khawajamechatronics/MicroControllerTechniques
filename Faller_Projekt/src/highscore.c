@@ -19,24 +19,26 @@ static highscore_t highscore_b;
 #pragma DATA_SECTION(highscore_c, ".infoC")
 static highscore_t highscore_c;
 
-static highscore_state_t* working_area;
+static highscore_state_t* state;
 
 void
 highscore_init (uint32_t score, highscore_state_t *working_area)
 {
+  state = working_area;
+
   if (score != HIGHSCORE_SHOW)
   {
     working_area->new_entry.score = score;
-    working_area->new_entry.name_length = 0;
+    working_area->new_entry.name_length = 8;
     memset(&working_area->new_entry.name, '\0', HIGHSCORE_NAME_LENGTH);
+    memcpy(&working_area->new_entry.name, "No Name!", 8);
   }
 
   working_area->clear_shown = 0x00;
   working_area->enter_name_shown = (score != HIGHSCORE_SHOW);
 
   // Initialize flash controller
-  FCTL1 = FWKEY // Write password
-      | BLKWRT; // Write blocks
+  FCTL1 = FWKEY; // Write password
   FCTL2 = FWKEY // Write password
       | FSSEL_2 // SMCLK as source
       | 0x03F; // FN Divisor of 64
@@ -44,8 +46,10 @@ highscore_init (uint32_t score, highscore_state_t *working_area)
       | LOCK; // Lock flash memory (read only)
 
   // Lock info segment A if not already done
-  if (!(FCTL3 & LOCKA))
+  if ((FCTL3 & LOCKA) != LOCKA)
+  {
     FCTL3 = FWKEY | ((FCTL3 & 0xFF) | LOCKA);
+  }
 
   highscore_get_areas(&working_area->current_segment,
                       &working_area->next_segment);
@@ -56,52 +60,51 @@ highscore_init (uint32_t score, highscore_state_t *working_area)
 void
 highscore_process (void)
 {
-  // TODO: Display name and dialogs
+  if (state->enter_name_shown)
+  {
+    highscore_show_input_dialog();
+  }
+  else if (state->clear_shown)
+  {
+    highscore_show_clear_dialog();
+  }
+  else
+  {
+    highscore_show_scoreboard();
+  }
 }
 
-void
+static __inline void
 highscore_get_areas (highscore_t **current, highscore_t **next)
 {
-  if (!highscore_c.initialized)
+  if (highscore_c.initialized == 0xFF)
   {
     *current = &highscore_b;
     *next = &highscore_c;
-
-    // Reset next segment
-    highscore_reset_segment(0x00, 0x01);
     return;
   }
 
-  if (!highscore_b.initialized)
+  if (highscore_b.initialized == 0xFF)
   {
     *current = &highscore_c;
     *next = &highscore_b;
-
-    // Reset next segment
-    highscore_reset_segment(0x01, 0x00);
     return;
   }
 
   // Controller was interrupted during flash erase or two highscore tables are
   // present
 
-  if (highscore_b.initialized == 0x01 && highscore_c.initialized == 0xFF)
+  if (highscore_b.initialized == 0x00 && highscore_c.initialized == 0xFE)
   {
     *current = &highscore_b;
     *next = &highscore_c;
-
-    // Reset next segment
-    highscore_reset_segment(0x00, 0x01);
     return;
   }
 
-  if (highscore_b.initialized == 0xFF && highscore_c.initialized == 0x01)
+  if (highscore_b.initialized == 0xFE && highscore_c.initialized == 0x00)
   {
     *current = &highscore_c;
     *next = &highscore_b;
-
-    // Reset next segment
-    highscore_reset_segment(0x01, 0x00);
     return;
   }
 
@@ -109,70 +112,83 @@ highscore_get_areas (highscore_t **current, highscore_t **next)
   {
     *current = &highscore_c;
     *next = &highscore_b;
-
-    // Reset next segment
-    highscore_reset_segment(0x01, 0x00);
     return;
   }
 
   *current = &highscore_b;
   *next = &highscore_c;
-
-  // Reset next segment
-  highscore_reset_segment(0x00, 0x01);
 }
 
-uint8_t
+static __inline uint8_t
 highscore_next_id (uint8_t current)
 {
-  if (current == 0xFF)
-    return 0x01;
+  if (current >= 0xFE)
+    return 0x00;
   else
     return current + 1;
 }
 
-void
+static __inline void
 highscore_update (highscore_t *current, highscore_t *next)
 {
+  // Reset next segment
   FCTL3 = FWKEY | ((FCTL3 & 0xFF) & ~LOCK); // Unlock flash
+  FCTL1 = FWKEY | ((FCTL1 & 0xFF) | ERASE); // Enable segment erase
+
+  *((uint8_t*) next) = 0; // Write toggles erase
+
+  while(FCTL3 & BUSY);
+
+  FCTL1 = FWKEY | ((FCTL1 & 0xFF) & ~ERASE); // Disable segment erase
   FCTL1 = FWKEY | ((FCTL1 & 0xFF) | WRT); // Enable flash write
 
   uint8_t new_index = 0;
   bool_t appended = 0;
   for (uint8_t old_index = 0; new_index < HIGHSCORE_LENGTH; new_index++)
   {
-    if (old_index > current->entry_count)
+    if (old_index > current->entry_count || current->initialized == 0xFF)
     {
       if (appended)
         break;
 
-      memcpy(&next->entries[new_index], &working_area->new_entry,
+      memcpy(&next->entries[new_index], &state->new_entry,
              sizeof(highscore_entry_t));
       break;
     }
 
-    if (current->entries[old_index].score > working_area->new_entry.score)
+    if (!appended
+        || current->entries[old_index].score > state->new_entry.score)
     {
       memcpy(&next->entries[new_index], &current->entries[old_index++],
              sizeof(highscore_entry_t));
       continue;
     } else {
-      memcpy(&next->entries[new_index], &working_area->new_entry,
+      memcpy(&next->entries[new_index], &state->new_entry,
              sizeof(highscore_entry_t));
       appended = 1;
       continue;
     }
   }
 
-  next->entry_count = new_index;
+  next->entry_count = new_index + 1;
   next->initialized = highscore_next_id(
-      working_area->current_segment->initialized);
+      state->current_segment->initialized);
 
   FCTL1 = FWKEY | ((FCTL1 & 0xFF) & ~WRT); // Disable flash write
-  FCTL3 = FWKEY | ((FCTL3 & 0xFF) | LOCK); // Lock flash
+  FCTL3 = FWKEY | ((FCTL3 & 0xFF) | LOCK); // Lock flash*/
+
+  // Re-Lock info segment A if not already done
+  if ((FCTL3 & LOCKA) != LOCKA)
+  {
+    FCTL3 = FWKEY | ((FCTL3 & 0xFF) | LOCKA);
+  }
+
+  // Swap segments to display new data
+  state->current_segment = next;
+  state->next_segment = current;
 }
 
-void
+static __inline void
 highscore_exit (void)
 {
   // Disable UART receive callback to prevent race condition between
@@ -183,25 +199,37 @@ highscore_exit (void)
   for (;;); // Let WDT reset the u-controller
 }
 
-void
-highscore_reset_segment (bool_t seg_b, bool_t seg_c)
+static void
+highscore_reset (void)
 {
   FCTL3 = FWKEY | ((FCTL3 & 0xFF) & ~LOCK); // Unlock flash
   FCTL1 = FWKEY | ((FCTL1 & 0xFF) | ERASE); // Enable segment erase
 
-  if (seg_b)
-    *((uint8_t*) &highscore_b) = 0; // Write toggles erase
-  if (seg_c)
-    *((uint8_t*) &highscore_c) = 0; // Write toggles erase
+  *((uint8_t*) &highscore_b) = 0; // Write toggles erase
+  while(FCTL3 & BUSY);
+
+  FCTL1 = FWKEY | ((FCTL1 & 0xFF) | ERASE); // Enable segment erase
+
+  *((uint8_t*) &highscore_c) = 0; // Write toggles erase
+  while(FCTL3 & BUSY);
 
   FCTL1 = FWKEY | ((FCTL1 & 0xFF) & ~ERASE); // Disable segment erase
   FCTL3 = FWKEY | ((FCTL3 & 0xFF) | LOCK); // Lock flash
+
+  // Re-Lock info segment A if not already done
+  if ((FCTL3 & LOCKA) != LOCKA)
+  {
+    FCTL3 = FWKEY | ((FCTL3 & 0xFF) | LOCKA);
+  }
 }
 
-bool_t
+static __inline bool_t
 highscore_is_char_allowed (uint8_t c)
 {
-  if ((c >= 'a' && c <= 'z') || (c >= 'A' || c <= 'Z'))
+  if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
+    return 0x01;
+
+  if (c >= '0' && c <= '9')
     return 0x01;
 
   switch (c)
@@ -213,17 +241,222 @@ highscore_is_char_allowed (uint8_t c)
   case '-':
   case '*':
   case '/':
+  case '#':
   case '?':
   case '\\':
+  case '&':
+  case '%':
   case '$':
   case '!':
   case '"':
   case '\'':
   case ':':
+  case ';':
+  case '(':
+  case ')':
+  case '[':
+  case ']':
+  case '=':
     return 0x01;
   default:
     return 0x00;
   }
+}
+
+static __inline void
+highscore_show_input_dialog (void)
+{
+  uart_send_move_to(0, 1);
+  uart_send_cls();
+
+  const uint8_t box_size = MAX(HIGHSCORE_NAME_LENGTH + 4, 19);
+  uint8_t y_position = HIGHSCORE_INPUT_Y;
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_C, HIGHSCORE_BORDER_H);
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position, HIGHSCORE_INPUT_X);
+  uart_send(HIGHSCORE_BORDER_V);
+  uart_send_string(" Score: ");
+  uart_send_number_u32(state->new_entry.score, 1);
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X + box_size + 1);
+  uart_send(HIGHSCORE_BORDER_V);
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position, HIGHSCORE_INPUT_X);
+  uart_send(HIGHSCORE_BORDER_V);
+  uart_send_string(" Enter your name: ");
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X + box_size + 1);
+  uart_send(HIGHSCORE_BORDER_V);
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position, HIGHSCORE_INPUT_X);
+  uart_send(HIGHSCORE_BORDER_V);
+  uart_send(' ');
+  for (uint8_t i = 0; i < HIGHSCORE_NAME_LENGTH; i++)
+  {
+    if (i >= state->new_entry.name_length)
+      uart_send('_');
+    else
+      uart_send(state->new_entry.name[i]);
+  }
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X + box_size + 1);
+  uart_send(HIGHSCORE_BORDER_V);
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position, HIGHSCORE_INPUT_X);
+  uart_send(HIGHSCORE_BORDER_V);
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X + box_size - 7);
+  uart_send_number_u8(state->new_entry.name_length, 1);
+  uart_send('/');
+  uart_send_number_u8(HIGHSCORE_NAME_LENGTH, 1);
+  uart_send(' ');
+  uart_send(HIGHSCORE_BORDER_V);
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_C, HIGHSCORE_BORDER_H);
+}
+
+static __inline void
+highscore_show_clear_dialog (void)
+{
+  uart_send_move_to(0, 1);
+  uart_send_cls();
+
+  const uint8_t box_size = 23;
+  uint8_t y_position = HIGHSCORE_INPUT_Y;
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_C, HIGHSCORE_BORDER_H);
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position, HIGHSCORE_INPUT_X);
+  uart_send(HIGHSCORE_BORDER_V);
+  uart_send_string(" Do you really want to ");
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X + box_size + 1);
+  uart_send(HIGHSCORE_BORDER_V);
+
+  uart_send_move_to(y_position, HIGHSCORE_INPUT_X);
+  uart_send(HIGHSCORE_BORDER_V);
+  uart_send_string(" delete all scores? ");
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X + box_size + 1);
+  uart_send(HIGHSCORE_BORDER_V);
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position, HIGHSCORE_INPUT_X);
+  uart_send(HIGHSCORE_BORDER_V);
+  uart_send_string(" (Y)es");
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X + box_size - 4);
+  uart_send_string("(N)o ");
+  uart_send(HIGHSCORE_BORDER_V);
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_C, HIGHSCORE_BORDER_H);
+}
+
+static __inline void
+highscore_show_scoreboard (void)
+{
+  const uint8_t box_size = HIGHSCORE_NAME_LENGTH + 22;
+
+  uart_send_move_to(0, 1);
+  uart_send_cls();
+
+  uint8_t y_position = HIGHSCORE_Y;
+
+  uart_send_move_to(y_position++, HIGHSCORE_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_C, HIGHSCORE_BORDER_H);
+
+  uart_send_move_to(y_position++, HIGHSCORE_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position, HIGHSCORE_X);
+  uart_send(HIGHSCORE_BORDER_V);
+  uart_send_string(" Highscore:");
+  uart_send_move_to(y_position++, HIGHSCORE_X + box_size + 1);
+  uart_send(HIGHSCORE_BORDER_V);
+
+  uart_send_move_to(y_position++, HIGHSCORE_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  highscore_t *table = state->current_segment;
+  for (uint8_t i = 0; i < HIGHSCORE_LENGTH; ++i)
+  {
+    uart_send_move_to(y_position, HIGHSCORE_X);
+    uart_send(HIGHSCORE_BORDER_V);
+    uart_send(' ');
+    uart_send_number_u8(i + 1, 1);
+    uart_send(':');
+    uart_send(' ');
+
+    if (i >= state->current_segment->entry_count
+        || state->current_segment->initialized == 0xFF)
+    {
+      uart_send_string("Empty");
+      uart_send_move_to(y_position++, HIGHSCORE_X + box_size + 1);
+    }
+    else
+    {
+      for (uint8_t j = 0; (j < table->entries[i].name_length)
+          && (j < HIGHSCORE_NAME_LENGTH); ++j)
+      {
+        uart_send(table->entries[i].name[j]);
+      }
+
+      uart_send_move_to(y_position++, HIGHSCORE_X + box_size - 10);
+      uart_send_number_u32(table->entries[i].score, 1);
+      uart_send(' ');
+    }
+
+    uart_send(HIGHSCORE_BORDER_V);
+  }
+
+  uart_send_move_to(y_position++, HIGHSCORE_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_V, ' ');
+
+  uart_send_move_to(y_position++, HIGHSCORE_X);
+  highscore_send_boxline(box_size, HIGHSCORE_BORDER_C, HIGHSCORE_BORDER_H);
+
+  y_position++;
+  if (state->current_segment->initialized != 0xFF)
+  {
+    uart_send_move_to(y_position++, HIGHSCORE_X);
+    uart_send_string("Press L to delete all highscores ...");
+  }
+
+  uart_send_move_to(y_position++, HIGHSCORE_X);
+  uart_send_string("Press E to exit ...");
+}
+
+static __inline void
+highscore_send_boxline (uint8_t count, uint8_t edge, uint8_t fill)
+{
+  uart_send(edge);
+  for (; count-- > 0;)
+    uart_send(fill);
+  uart_send(edge);
 }
 
 bool_t
@@ -235,42 +468,55 @@ highscore_on_key (buffer_t *buffer)
     uint8_t key = buffer_dequeue(buffer);
 
     // Executed if the dialog 'delete highscore' is shown
-    if (working_area->clear_shown)
+    if (state->clear_shown)
     {
-      if (key == 'Y')
+      switch (key)
       {
-        highscore_reset_segment(0x01, 0x01);
-        highscore_exit();
-        /* no */ return 0x00;
+      case 'Y': // Yes
+      case 'y':
+        highscore_reset();
+        state->clear_shown = 0x00;
+        return 0x01;
+      case 'N': // No
+      case 'n':
+        state->clear_shown = 0x00;
+        wake_cpu = 0x01;
+        break;
       }
 
-      wake_cpu = 0x01;
       continue;
     }
 
     // Executed if the dialog 'enter name' is shown
-    if (working_area->enter_name_shown)
+    if (state->enter_name_shown)
     {
-      highscore_entry_t *new_entry = &working_area->new_entry;
+      highscore_entry_t *new_entry = &state->new_entry;
 
       if (key == KEY_ENTER) {
         if (new_entry->name_length > 0)
         {
-          highscore_update(working_area->current_segment,
-                           working_area->next_segment);
-          working_area->enter_name_shown = 0x00;
+          highscore_update(state->current_segment,
+                           state->next_segment);
+          state->enter_name_shown = 0x00;
           wake_cpu = 0x01;
         }
       }
       else if (key == KEY_DELETE)
       {
         if (new_entry->name_length > 0)
+        {
           new_entry->name_length--;
+          wake_cpu = 0x01;
+        }
       }
       else if (highscore_is_char_allowed(key))
       {
         if (new_entry->name_length < HIGHSCORE_NAME_LENGTH)
-          new_entry->name[new_entry->name_length++] = key;
+        {
+          new_entry->name[new_entry->name_length] = key;
+          new_entry->name_length++;
+          wake_cpu = 0x01;
+        }
       }
       continue;
     }
@@ -278,12 +524,20 @@ highscore_on_key (buffer_t *buffer)
     // Executed if no dialog is shown
     switch (key)
     {
-    case 'D':
-      working_area->clear_shown = 0x01;
-      wake_cpu = 0x01;
+    case 'L': // Loeschen (far away from C & E)
+    case 'l':
+      if (state->current_segment->initialized != 0xFF)
+      {
+        state->clear_shown = 0x01;
+        wake_cpu = 0x01;
+      }
       continue;
-    case 'C':
-    case 'E':
+    case 'C': // Close
+    case 'c':
+    case 'E': // Exit
+    case 'e':
+    case 'X': // EXit
+    case 'x':
       highscore_exit();
       /* no */ return 0x00;
     }

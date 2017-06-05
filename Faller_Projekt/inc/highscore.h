@@ -3,7 +3,11 @@
 #ifndef __HIGHSCORE_H
 #define __HIGHSCORE_H
 
-#define HIGHSCORE_SHOW 0xFFFFFFFF
+// No score => Not on scoreboard
+#define HIGHSCORE_SHOW 0x00000000
+
+// Flash gets erased to all 1s => uint8_t <=> 0xFF
+#define HIGHSCORE_SEGMENT_EMPTY 0xFF
 
 /**
  * Struct to hold a highscore entry comprising of a name and a score.

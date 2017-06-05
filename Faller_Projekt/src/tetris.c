@@ -434,9 +434,10 @@ tetris_game_update_score (tetris_t *tetris, uint8_t cleared, bool_t t_spin)
     tetris->level++;
   }
 
+  // Use pre-computed lookup table for:
+  // points = (cleared rows)^2 * (successive clears)
   uint16_t points
     = SCORE_MULTIPLIER[tetris->score_factor][(uint8_t) (cleared - 1)];
-  // uint16_t points = (tetris->score_factor + 1) * cleared;
 
   // Double points for t-spin
   if (t_spin)

@@ -26,16 +26,8 @@ highscore_init (uint32_t score, highscore_state_t *working_area)
 {
   state = working_area;
 
-  if (score != HIGHSCORE_SHOW)
-  {
-    working_area->new_entry.score = score;
-    working_area->new_entry.name_length = 8;
-    memset(&working_area->new_entry.name, '\0', HIGHSCORE_NAME_LENGTH);
-    memcpy(&working_area->new_entry.name, "No Name!", 8);
-  }
-
-  working_area->clear_shown = 0x00;
-  working_area->enter_name_shown = (score != HIGHSCORE_SHOW);
+  state->clear_shown = 0x00;
+  state->enter_name_shown = 0x00;
 
   // Initialize flash controller
   FCTL1 = FWKEY; // Write password
@@ -51,8 +43,22 @@ highscore_init (uint32_t score, highscore_state_t *working_area)
     FCTL3 = FWKEY | ((FCTL3 & 0xFF) | LOCKA);
   }
 
-  highscore_get_areas(&working_area->current_segment,
-                      &working_area->next_segment);
+  highscore_get_areas(&state->current_segment,
+                      &state->next_segment);
+
+  // Is the new entry on the list?
+  if (score != HIGHSCORE_SHOW
+      && (state->current_segment->initialized == HIGHSCORE_SEGMENT_EMPTY
+        || state->current_segment->entry_count < HIGHSCORE_LENGTH
+        || state->current_segment->entries[HIGHSCORE_LENGTH - 1].score < score))
+  {
+    state->enter_name_shown = 0x01;
+
+    state->new_entry.score = score;
+    state->new_entry.name_length = 8;
+    memset(&state->new_entry.name, '\0', HIGHSCORE_NAME_LENGTH);
+    memcpy(&state->new_entry.name, "No Name!", 8);
+  }
 
   uart_set_receive_callback(&highscore_on_key);
 }
@@ -77,14 +83,14 @@ highscore_process (void)
 static __inline void
 highscore_get_areas (highscore_t **current, highscore_t **next)
 {
-  if (highscore_c.initialized == 0xFF)
+  if (highscore_c.initialized == HIGHSCORE_SEGMENT_EMPTY)
   {
     *current = &highscore_b;
     *next = &highscore_c;
     return;
   }
 
-  if (highscore_b.initialized == 0xFF)
+  if (highscore_b.initialized == HIGHSCORE_SEGMENT_EMPTY)
   {
     *current = &highscore_c;
     *next = &highscore_b;
@@ -144,35 +150,38 @@ highscore_update (highscore_t *current, highscore_t *next)
 
   uint8_t new_index = 0;
   bool_t appended = 0;
-  for (uint8_t old_index = 0; new_index < HIGHSCORE_LENGTH; new_index++)
+  for (uint8_t old_index = 0; new_index < HIGHSCORE_LENGTH; ++new_index)
   {
-    if (old_index > current->entry_count || current->initialized == 0xFF)
+    if (current->initialized == HIGHSCORE_SEGMENT_EMPTY
+        || old_index >= current->entry_count)
     {
-      if (appended)
-        break;
+      if (!appended) // Append new score to the end of the list
+      {
+        memcpy(&next->entries[new_index], &state->new_entry,
+               sizeof(highscore_entry_t));
+        new_index++; // Increment index since loop is exited
+      }
 
-      memcpy(&next->entries[new_index], &state->new_entry,
-             sizeof(highscore_entry_t));
       break;
     }
 
-    if (!appended
-        || current->entries[old_index].score > state->new_entry.score)
+    // Check if new score should be inserted here
+    if (state->new_entry.score > current->entries[old_index].score
+        && !appended)
     {
-      memcpy(&next->entries[new_index], &current->entries[old_index++],
-             sizeof(highscore_entry_t));
-      continue;
-    } else {
       memcpy(&next->entries[new_index], &state->new_entry,
              sizeof(highscore_entry_t));
-      appended = 1;
+      appended = 0x01;
       continue;
     }
+
+    // Copy old score to this position
+    memcpy(&next->entries[new_index], &current->entries[old_index++],
+             sizeof(highscore_entry_t));
   }
 
-  next->entry_count = new_index + 1;
-  next->initialized = highscore_next_id(
-      state->current_segment->initialized);
+  next->entry_count = new_index;
+  next->initialized = highscore_next_id(current->initialized);
 
   FCTL1 = FWKEY | ((FCTL1 & 0xFF) & ~WRT); // Disable flash write
   FCTL3 = FWKEY | ((FCTL3 & 0xFF) | LOCK); // Lock flash*/
@@ -412,7 +421,7 @@ highscore_show_scoreboard (void)
     uart_send(' ');
 
     if (i >= state->current_segment->entry_count
-        || state->current_segment->initialized == 0xFF)
+        || state->current_segment->initialized == HIGHSCORE_SEGMENT_EMPTY)
     {
       uart_send_string("Empty");
       uart_send_move_to(y_position++, HIGHSCORE_X + box_size + 1);
@@ -440,7 +449,7 @@ highscore_show_scoreboard (void)
   highscore_send_boxline(box_size, HIGHSCORE_BORDER_C, HIGHSCORE_BORDER_H);
 
   y_position++;
-  if (state->current_segment->initialized != 0xFF)
+  if (state->current_segment->initialized != HIGHSCORE_SEGMENT_EMPTY)
   {
     uart_send_move_to(y_position++, HIGHSCORE_X);
     uart_send_string("Press L to delete all highscores ...");
@@ -526,7 +535,7 @@ highscore_on_key (buffer_t *buffer)
     {
     case 'L': // Loeschen (far away from C & E)
     case 'l':
-      if (state->current_segment->initialized != 0xFF)
+      if (state->current_segment->initialized != HIGHSCORE_SEGMENT_EMPTY)
       {
         state->clear_shown = 0x01;
         wake_cpu = 0x01;

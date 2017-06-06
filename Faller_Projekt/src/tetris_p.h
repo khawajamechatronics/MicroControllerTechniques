@@ -255,12 +255,26 @@ static bool_t
 tetris_on_timer (void);
 
 /**
- * Callback method for key presses which get finally queued.
+ * Callback method for received UART key presses.
+ * The resulting game command will will finally get queued if there is enough
+ * space.
  *
  * @param buffer The buffer to read key data from
+ * @return true to wake up the CPU
  */
 static bool_t
 tetris_on_key (buffer_t *buffer);
+
+/**
+ * Callback when a button is pressed.
+ * The resulting game command will will finally get queued if there is enough
+ * space.
+ *
+ * @param button The button which was pressed
+ * @return true to wake up the CPU
+ */
+static bool_t
+tetris_on_button (button_t button);
 
 /**
  * Callback method for user / timer created command.

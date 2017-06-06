@@ -32,8 +32,8 @@ setup (void);
 static uint8_t uart_r_buffer[UART_R_BUFFER_SIZE];
 static uint8_t uart_t_buffer[UART_T_BUFFER_SIZE];
 static uint8_t command_buffer[TETRIS_CMD_BUFFER_SIZE];
-
-static tetris_t tetris;
+static tetris_t tetris_buffer;
+static buttons_t button_buffer;
 
 view_t view;
 
@@ -72,16 +72,14 @@ __attribute__((always_inline))
 static __inline void
 setup (void)
 {
-  // Initialize unused port 1
-  // (set as input without pull-up / -down)
+  // Initialize port 1 (set as input without pull-up / -down)
+  // The UART module overwrites this setting for pin 1 & 2
+  // The button module keeps this settings for pin 3 & 4
   P1IE = 0;
   P1SEL = 0;
   P1SEL2 = 0;
   P1DIR = 0;
   P1OUT = 0;
-
-  // Initialize shift register
-  shift_register_init();
 
   // Initialize unused port 3
   P3SEL = 0;
@@ -93,11 +91,8 @@ setup (void)
   uart_init(uart_r_buffer, UART_R_BUFFER_SIZE,
             uart_t_buffer, UART_T_BUFFER_SIZE);
 
-  // Initialize timer to seed the RNG
-  timer_init(TIMER_2);
-  timer_set_divider(TIMER_2, TIMER_DIVIDER_1);
-  timer_set_interval(TIMER_2, 0xFFFF);
-  timer_start_counter(TIMER_2);
+  // Initialize buttons
+  buttons_init(&button_buffer);
 
   // Print a welcome message each second (Wait for terminal connection)
   timer_init(TIMER_1);
@@ -107,6 +102,7 @@ setup (void)
   timer_start(TIMER_1);
 
   uart_set_receive_callback(&main_uart_received);
+  buttons_set_callback(&main_button_pressed);
 }
 
 static bool_t
@@ -125,46 +121,75 @@ main_send_welcome (void)
   return 0;
 }
 
+static void
+main_view_game (void)
+{
+  timer_stop(TIMER_1);
+
+  // Seed the RNG with current timer value
+  srand(timer_get_value(TIMER_2));
+
+  // Initialize the game
+  tetris_game_init(&tetris_buffer, command_buffer, TETRIS_CMD_BUFFER_SIZE);
+
+  // Clear screen
+  uart_send_move_to(0, 1);
+  uart_send_cls();
+
+  tetris_game_start();
+
+  // Wake up CPU to send the initial game field
+  view = VIEW_GAME;
+}
+
+static void
+main_view_highscore (void)
+{
+  timer_stop(TIMER_1);
+
+  // Initialize highscore view
+  highscore_init(HIGHSCORE_SHOW,
+                 (highscore_state_t*) &tetris_buffer.game_field);
+
+  // Wake up CPU to load the highscore list
+  view = VIEW_HIGHSCORE;
+}
+
 static bool_t
 main_uart_received (buffer_t *buffer)
 {
   while (!buffer_is_empty(buffer)) {
-    uint8_t key = buffer_dequeue(buffer);
-    switch(key) {
+    switch(buffer_dequeue(buffer)) {
     case KEY_ENTER:
-    case 'T':
-      timer_stop(TIMER_1);
-      timer_stop(TIMER_2);
-
-      // Seed the RNG
-      srand(timer_get_value(TIMER_2));
-
-      // Initialize the game
-      tetris_game_init(&tetris, command_buffer, TETRIS_CMD_BUFFER_SIZE);
-
-      // Clear screen
-      uart_send_move_to(0, 1);
-      uart_send_cls();
-
-      tetris_game_start();
-
-      // Wake up CPU to send the initial game field
-      view = VIEW_GAME;
-      return 1;
-    case 'H':
+    case 'T': // Tetris
+    case 't':
+      main_view_game();
+      return 0x01;
+    case 'H': // Highscore
     case 'h':
-      timer_stop(TIMER_1);
-      timer_stop(TIMER_2);
-
-      // Initialize highscore view
-      highscore_init(HIGHSCORE_SHOW, (highscore_state_t*) &tetris.game_field);
-
-      // Wake up CPU to load the highscore list
-      view = VIEW_HIGHSCORE;
-      return 1;
+      main_view_highscore();
+      return 0x01;
+    default:
+      break;
     }
   }
 
   // Don't wake up the CPU
-  return 0;
+  return 0x00;
+}
+
+static bool_t
+main_button_pressed (button_t button)
+{
+  switch (button)
+  {
+  case BUTTON_5:
+    main_view_game();
+    return 0x01;
+  case BUTTON_6:
+    main_view_highscore();
+    return 0x01;
+  default:
+    return 0x00;
+  }
 }

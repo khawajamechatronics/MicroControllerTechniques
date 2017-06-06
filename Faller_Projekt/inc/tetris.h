@@ -9,6 +9,7 @@
 #include "config.h"
 
 #include "buffer.h"
+#include "buttons.h"
 
 // ----------------------------------------------------------------------------
 // Types

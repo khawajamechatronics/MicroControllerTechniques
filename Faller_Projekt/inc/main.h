@@ -12,10 +12,16 @@ static bool_t
 main_send_welcome (void);
 
 /**
- * Start the tetris game.
+ * Displays the main game and exits the welcome screen.
  */
 static void
-main_start_game (void);
+main_view_game (void);
+
+/**
+ * Displays the highscore menu and exits the welcome screen.
+ */
+static void
+main_view_highscore (void);
 
 /**
  * Callback which gets called if UART data was received in the welcome
@@ -27,5 +33,14 @@ main_start_game (void);
  */
 static bool_t
 main_uart_received (buffer_t *buffer);
+
+/**
+ * Callback when a button gets pressed in the welcome screen.
+ *
+ * @param button The button which was pressed
+ * @return true if the CPU should be resumed
+ */
+static bool_t
+main_button_pressed (button_t button);
 
 #endif // !__MAIN_H

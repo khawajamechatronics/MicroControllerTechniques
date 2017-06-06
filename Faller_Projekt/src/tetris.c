@@ -12,6 +12,7 @@
 #include "inc/util.h"
 #include "inc/uart.h"
 #include "inc/highscore.h"
+#include "inc/buttons.h"
 
 #include "tetris_p.h"
 
@@ -61,6 +62,7 @@ tetris_game_start (void)
   timer_start(TIMER_1);
 
   uart_set_receive_callback(&tetris_on_key);
+  buttons_set_callback(&tetris_on_button);
 }
 
 void
@@ -239,6 +241,34 @@ tetris_on_key (buffer_t *buffer)
 
   // Wake up CPU to update the game field
   return wake_cpu;
+}
+
+static bool_t
+tetris_on_button (button_t button)
+{
+  switch (button)
+  {
+  case BUTTON_1: // Do nothing (rotate left?)
+    return 0x00;
+  case BUTTON_2: // Go left
+    tetris_on_command(COMMAND_LEFT);
+    break;
+  case BUTTON_3: // Go right
+    tetris_on_command(COMMAND_RIGHT);
+    break;
+  case BUTTON_4: // Rotate right
+    tetris_on_command(COMMAND_ROTATE);
+    break;
+  case BUTTON_5: // Drop till floor
+    tetris_on_command(COMMAND_DROP);
+    break;
+  case BUTTON_6: // Down by one
+    tetris_on_command(COMMAND_DOWN);
+    break;
+  }
+
+  // Wake up CPU to update the game field
+  return 0x01;
 }
 
 static void

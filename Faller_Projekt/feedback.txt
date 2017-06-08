@@ -3,6 +3,16 @@ Feedback
 
 Problems
 --------
-- Linking 'inline' functions in C is not possible if used in multiple files
-  (One-file inline linking works)
-- 
+
+- Linking 'static inline' functions in C is not possible if used in
+  multiple files (One-file inline linking works)
+- Serial connection only works with dedicated UART adapter with Windows 8.1 x64
+- 512 bytes of memory is 1/16 the size of RAM of the Arduino!
+  80 byte are used as stack (might be reduced) => 432 bytes free
+  22x10 = 220 bytes are already used for the game field => 292 bytes free
+  8 byte are used for RNG locking and state => 204 bytes free
+  UART ringbuffer needs 4 bytes for state management => 196 bytes free
+  UART receive buffer and send buffer need 64 bytes => 132 bytes free
+- Information memory is only 64 byte per segment
+  => Highscore is limited to 4 entries with 10 chars per name since
+     the information has to be cached during rewrite (2 segments are needed)

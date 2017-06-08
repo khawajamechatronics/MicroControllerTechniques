@@ -9,6 +9,7 @@
 #include "inc/util.h"
 #include "inc/wdt.h"
 #include "inc/uart.h"
+#include "inc/buttons.h"
 #include "inc/highscore.h"
 
 #include "highscore_p.h"
@@ -61,6 +62,7 @@ highscore_init (uint32_t score, highscore_state_t *working_area)
   }
 
   uart_set_receive_callback(&highscore_on_key);
+  buttons_set_callback(&highscore_on_button);
 }
 
 void
@@ -272,6 +274,140 @@ highscore_is_char_allowed (uint8_t c)
   }
 }
 
+static __inline uint8_t
+highscore_next_char (uint8_t c)
+{
+  if (!highscore_is_char_allowed(c))
+    return '?';
+
+  if ((c >= 'a' && c <= 'y') || (c >= 'A' && c <= 'Y')
+      || (c >= '0' && c <= '8'))
+    return c + 1;
+
+  switch (c)
+  {
+  case 'Z':
+    return 'a';
+  case 'z':
+    return ' ';
+  case ' ':
+    return '.';
+  case '.':
+    return ',';
+  case ',':
+    return '+';
+  case '+':
+    return '-';
+  case '-':
+    return '*';
+  case '*':
+    return '/';
+  case '/':
+    return '#';
+  case '#':
+    return '?';
+  case '?':
+    return '\\';
+  case '\\':
+    return '&';
+  case '&':
+    return '%';
+  case '%':
+    return '$';
+  case '$':
+    return '!';
+  case '!':
+    return '"';
+  case '"':
+    return '\'';
+  case '\'':
+    return ':';
+  case ':':
+    return ';';
+  case ';':
+    return '(';
+  case '(':
+    return ')';
+  case ')':
+    return '[';
+  case '[':
+    return ']';
+  case ']':
+    return '=';
+  case '=':
+    return 'A';
+  default:
+    return '?';
+  }
+}
+
+static __inline uint8_t
+highscore_prev_char (uint8_t c)
+{
+  if (!highscore_is_char_allowed(c))
+    return '?';
+
+  if ((c >= 'b' && c <= 'z') || (c >= 'B' && c <= 'Z')
+     || (c >= '1' && c <= '9'))
+   return c - 1;
+
+  switch (c)
+  {
+  case 'A':
+   return '=';
+  case 'a':
+   return 'Z';
+  case ' ':
+   return 'z';
+  case '.':
+   return ' ';
+  case ',':
+   return '.';
+  case '+':
+   return ',';
+  case '-':
+   return '+';
+  case '*':
+   return '-';
+  case '/':
+   return '*';
+  case '#':
+   return '/';
+  case '?':
+   return '#';
+  case '\\':
+   return '?';
+  case '&':
+   return '\\';
+  case '%':
+   return '&';
+  case '$':
+   return '%';
+  case '!':
+   return '$';
+  case '"':
+   return '!';
+  case '\'':
+   return '"';
+  case ':':
+   return '\'';
+  case ';':
+   return ':';
+  case '(':
+   return ';';
+  case ')':
+   return '(';
+  case '[':
+   return ')';
+  case ']':
+   return '[';
+  case '=':
+   return ']';
+  default:
+   return '?';
+  }
+}
+
 static __inline void
 highscore_show_input_dialog (void)
 {
@@ -339,6 +475,10 @@ highscore_show_input_dialog (void)
 
   uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
   highscore_send_boxline(box_size, HIGHSCORE_BORDER_C, HIGHSCORE_BORDER_H);
+
+  y_position++;
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
+  uart_send_string("Press ENTER (5) to finish ...");
 }
 
 static __inline void
@@ -373,9 +513,9 @@ highscore_show_clear_dialog (void)
 
   uart_send_move_to(y_position, HIGHSCORE_INPUT_X);
   uart_send(HIGHSCORE_BORDER_V);
-  uart_send_string(" (Y)es");
-  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X + box_size - 4);
-  uart_send_string("(N)o ");
+  uart_send_string(" (Y)es (5)");
+  uart_send_move_to(y_position++, HIGHSCORE_INPUT_X + box_size - 8);
+  uart_send_string("(N)o (6) ");
   uart_send(HIGHSCORE_BORDER_V);
 
   uart_send_move_to(y_position++, HIGHSCORE_INPUT_X);
@@ -452,11 +592,11 @@ highscore_show_scoreboard (void)
   if (state->current_segment->initialized != HIGHSCORE_SEGMENT_EMPTY)
   {
     uart_send_move_to(y_position++, HIGHSCORE_X);
-    uart_send_string("Press L to delete all highscores ...");
+    uart_send_string("Press L (4) to delete all highscores ...");
   }
 
   uart_send_move_to(y_position++, HIGHSCORE_X);
-  uart_send_string("Press E to exit ...");
+  uart_send_string("Press E (5) to exit ...");
 }
 
 static __inline void
@@ -468,7 +608,7 @@ highscore_send_boxline (uint8_t count, uint8_t edge, uint8_t fill)
   uart_send(edge);
 }
 
-bool_t
+static bool_t
 highscore_on_key (buffer_t *buffer)
 {
   bool_t wake_cpu = 0x00;
@@ -553,4 +693,95 @@ highscore_on_key (buffer_t *buffer)
   }
 
   return wake_cpu;
+}
+
+static bool_t
+highscore_on_button (button_t button)
+{
+  // Executed if the dialog 'delete highscore' is shown
+  if (state->clear_shown)
+  {
+    switch (button)
+    {
+    case BUTTON_5: // Yes
+      highscore_reset();
+    case BUTTON_6: // No
+      state->clear_shown = 0x00;
+      return 0x01;
+    default:
+      return 0x00;
+    }
+  }
+
+  // Executed if the dialog 'enter name' is shown
+  if (state->enter_name_shown)
+  {
+    highscore_entry_t *new_entry = &state->new_entry;
+
+    switch (button)
+    {
+    case BUTTON_5:
+      if (new_entry->name_length > 0)
+      {
+        highscore_update(state->current_segment,
+                         state->next_segment);
+        state->enter_name_shown = 0x00;
+        return 0x01;
+      }
+      break;
+    case BUTTON_1:
+      if (new_entry->name_length > 0)
+      {
+        state->new_entry.name_length--;
+        return 0x01;
+      }
+      break;
+    case BUTTON_2:
+      if (new_entry->name_length <= HIGHSCORE_NAME_LENGTH)
+      {
+        state->new_entry.name[new_entry->name_length] = 'a';
+        new_entry->name_length++;
+        return 0x01;
+      }
+      break;
+    case BUTTON_3:
+      if (new_entry->name_length > 0)
+      {
+        uint8_t index = new_entry->name_length - 1;
+        state->new_entry.name[index]
+            = highscore_prev_char(state->new_entry.name[index]);
+        return 0x01;
+      }
+      break;
+    case BUTTON_4:
+      if (new_entry->name_length > 0)
+      {
+        uint8_t index = new_entry->name_length - 1;
+        state->new_entry.name[index]
+            = highscore_next_char(state->new_entry.name[index]);
+        return 0x01;
+      }
+      break;
+    }
+
+    return 0x00;
+  }
+
+  // Executed if no dialog is shown
+  switch (button)
+  {
+  case BUTTON_4: // Delete
+    if (state->current_segment->initialized != HIGHSCORE_SEGMENT_EMPTY)
+    {
+      state->clear_shown = 0x01;
+      return 0x01;
+    }
+    break;
+  case BUTTON_5:
+  case BUTTON_6:
+    highscore_exit();
+    break; /* no return */
+  }
+
+  return 0x00;
 }

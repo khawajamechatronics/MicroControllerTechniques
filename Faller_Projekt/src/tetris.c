@@ -142,6 +142,9 @@ tetris_game_process (void)
 static bool_t
 tetris_on_timer (void)
 {
+  // Enable reentrant interrupts for UART
+  __enable_interrupt();
+
   if (++tetris_inst->timer_divider < 2)
     return 0;
   else
@@ -160,7 +163,7 @@ tetris_on_timer (void)
     buffer_enqueue(&tetris_inst->command_buffer, COMMAND_DOWN);
 
   // Wake up CPU to update the game field
-  return 1;
+  return 0x01;
 }
 
 static bool_t
@@ -248,16 +251,17 @@ tetris_on_button (button_t button)
 {
   switch (button)
   {
-  case BUTTON_1: // Do nothing (rotate left?)
-    return 0x00;
-  case BUTTON_2: // Go left
+  case BUTTON_1: // Drop till floor
+    tetris_on_command(COMMAND_DROP);
+    break;
+  case BUTTON_2: // Rotate right
+    tetris_on_command(COMMAND_ROTATE);
+    break;
+  case BUTTON_3: // Go left
     tetris_on_command(COMMAND_LEFT);
     break;
-  case BUTTON_3: // Go right
+  case BUTTON_4: // Go right
     tetris_on_command(COMMAND_RIGHT);
-    break;
-  case BUTTON_4: // Rotate right
-    tetris_on_command(COMMAND_ROTATE);
     break;
   case BUTTON_5: // Drop till floor
     tetris_on_command(COMMAND_DROP);

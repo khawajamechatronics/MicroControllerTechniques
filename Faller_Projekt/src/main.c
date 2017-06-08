@@ -114,8 +114,8 @@ main_send_welcome (void)
   uart_send_string("Welcome to Tetris.\r\n");
   uart_send_string("Please set the resolution to at least 30x80 chars!\r\n");
   uart_send_string("\r\n");
-  uart_send_string("Press ENTER to continue ...\r\n");
-  uart_send_string("Press H to view the highscore table ...\r\n");
+  uart_send_string("Press ENTER (5) to continue ...\r\n");
+  uart_send_string("Press H (6) to view the highscore table ...\r\n");
 
   // Don't wake the CPU
   return 0;

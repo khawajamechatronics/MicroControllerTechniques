@@ -22,6 +22,10 @@ buttons_init (buttons_t *buffer)
   // Initialize shift register
   shift_register_init();
 
+  // Initialize button inputs
+  P1REN |= BIT3 | BIT4; // Enable pull-up / down resistors
+  P1OUT |= BIT3 | BIT4; // Set to pull-up
+
   // Load initial states
   uint8_t sr_state = shift_register_get_buttons();
   for (uint8_t i = BUTTON_COUNT; i-- > 0;)
@@ -32,13 +36,14 @@ buttons_init (buttons_t *buffer)
     case BUTTON_2:
     case BUTTON_3:
     case BUTTON_4:
-      buffer->state[i] = ((sr_state >> i) & 0x01) ? BUTTON_STATE_PRESSED : 0;
+      buffer->state[i] = ((sr_state >> (3 - i)) & 0x01)
+          ? BUTTON_STATE_PRESSED : 0;
       break;
     case BUTTON_5:
-      buffer->state[i] = (P1IN & BIT3) ? BUTTON_STATE_PRESSED : 0;
+      buffer->state[i] = (P1IN & BIT3) ? 0 : BUTTON_STATE_PRESSED;
       break;
     case BUTTON_6:
-      buffer->state[i] = (P1IN & BIT4) ? BUTTON_STATE_PRESSED : 0;
+      buffer->state[i] = (P1IN & BIT4) ? 0 : BUTTON_STATE_PRESSED;
       break;
     }
   }
@@ -46,13 +51,13 @@ buttons_init (buttons_t *buffer)
   // Disable callback function
   state->callback = 0;
 
-  // Initialize timer to check the buttons every 1 ms
+  // Initialize timer to check the buttons every 50 ms
   // This timer is also used to seed the RNG
   timer_init(TIMER_2);
   timer_set_divider(TIMER_2, TIMER_DIVIDER_1);
-  timer_set_interval(TIMER_2, 0x3E8); // Every 1 ms
+  timer_set_interval(TIMER_2, 0xC350); // Every 50 ms
   timer_set_callback(TIMER_2, &buttons_on_timer2);
-  timer_start_counter(TIMER_2);
+  timer_start(TIMER_2);
 }
 
 void
@@ -64,6 +69,9 @@ buttons_set_callback (bool_t (*callback)(button_t))
 bool_t
 buttons_on_timer2 (void)
 {
+  // Enable reentrant interrupts for UART
+  __enable_interrupt();
+
   uint8_t wake_cpu = 0x00;
 
   uint8_t sr_state = shift_register_get_buttons();
@@ -79,13 +87,13 @@ buttons_on_timer2 (void)
       case BUTTON_2:
       case BUTTON_3:
       case BUTTON_4:
-        new_state = (sr_state >> i) & 0x01;
+        new_state = (sr_state >> (3 - i)) & 0x01;
         break;
       case BUTTON_5:
-        new_state = P1IN & BIT3;
+        new_state = (P1IN & BIT3) ? 0 : 1;
         break;
       case BUTTON_6:
-        new_state = P1IN & BIT4;
+        new_state = (P1IN & BIT4) ? 0 : 1;
         break;
       }
 

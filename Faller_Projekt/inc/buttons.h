@@ -12,8 +12,8 @@
 #define BUTTON_STATE_PRESSED 0x8000
 #define BUTTON_TIMER_MASK 0x7FFF
 
-// Re-enable trigger after 10ms
-#define BUTTON_WAIT_TIME 10
+// Re-enable trigger after 100 ms = 2 * 50 ms
+#define BUTTON_WAIT_TIME 2
 
 typedef enum {
   BUTTON_1 = 0x00,

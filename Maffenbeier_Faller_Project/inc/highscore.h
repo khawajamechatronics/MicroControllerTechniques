@@ -1,4 +1,5 @@
 // (c) Tobias Faller 2017
+// (c) Tim Maffenbeier 2017
 
 #ifndef __HIGHSCORE_H
 #define __HIGHSCORE_H

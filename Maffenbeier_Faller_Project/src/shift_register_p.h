@@ -1,4 +1,5 @@
 // (c) Tobias Faller 2017
+// (c) Tim Maffenbeier 2017
 
 #ifndef __SHIFT_REGISTER_P_H
 #define __SHIFT_REGISTER_P_H

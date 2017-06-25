@@ -1,4 +1,5 @@
 // (c) Tobias Faller 2017
+// (c) Tim Maffenbeier 2017
 
 #include <inc/buffer.h>
 #include <msp430.h>

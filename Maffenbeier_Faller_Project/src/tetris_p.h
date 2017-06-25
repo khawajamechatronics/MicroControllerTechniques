@@ -1,4 +1,5 @@
 // (c) Tobias Faller 2017
+// (c) Tim Maffenbeier 2017
 
 #ifndef __TETRIS_P_H
 #define __TETRIS_P_H

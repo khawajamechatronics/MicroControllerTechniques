@@ -1,4 +1,4 @@
 build
-src/src.rar
+src.rar
 
 !build/*.pdf

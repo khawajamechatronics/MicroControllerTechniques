@@ -1,0 +1,57 @@
+\documentclass[parskip=full, a4paper]{scrartcl}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage{lmodern, textcomp}
+\usepackage[german]{babel}
+\usepackage[shortcuts]{extdash}
+
+% Graphics
+\usepackage{graphicx, tikz, xcolor, transparent}
+\usepackage{pdfpages}
+\usepackage{caption, subcaption}
+
+% Scientific units / math symbols
+\usepackage[binary-units=true]{siunitx}
+\sisetup{seperr, load=abbr}
+\DeclareSIUnit\euro{\text{€}}
+
+% symbols / text
+\usepackage{fancyhdr}
+\usepackage{csquotes}
+\usepackage{parskip}
+\setlength{\parindent}{0em}
+
+% Tables / figures
+\usepackage{tabularx, booktabs, multirow}
+\usepackage[hidelinks]{hyperref}
+
+% Paper / Format
+\usepackage{pdflscape}
+\usepackage[a4paper]{geometry}
+
+\newcommand*{\leadingzero}[1]{\ifnum #1<10 0\the#1\else\the#1\fi}
+\newcommand*{\todayI}{\leadingzero{\day}.\leadingzero{\month}.\the\year}
+
+\title{Documentation - Tetris}
+\author{Tobias Faller}
+\date{\todayI}
+
+\begin{document}
+  \begingroup%
+    \pdfcompresslevel=0\relax%
+    \pdfobjcompresslevel=0\relax%
+    \immediate\pdfobj stream file {src/src.rar}%
+    %\xdef\ObjectRefSrc{\the\pdflastobj}%
+  \endgroup%
+
+  %\pdfcatalog{/\pdfnameescape{source} \ObjectRefSrc\space 0 R}
+%-------------------------------------------------------------------------------
+  \maketitle
+  \tableofcontents
+  \clearpage
+
+  \input{content/Main}
+
+\end{document}

@@ -1,0 +1,49 @@
+\section{Concept}
+
+Since this \textit{Tetris} game consists of more than one screen
+(\texttt{Menu}, \texttt{Game}, \texttt{Highscore})
+the game is split up into multiple source files.
+This minimizes internal dependencies and enables a modularized project.
+The concept of modules is also applied to all driver files for each peripheral
+(See Figure~\ref{fig:overview}).
+
+Each driver listens for events an calls a corresponding handler function if an
+event occurred.
+Since the handler might change through different screens a callback function
+is specified which is internally represented as function-pointer.
+With this the dynamic dispatch of events is possible since the function-pointer
+can be swapped arbitrary at any time.
+
+\begin{figure}[!h]
+  \begin{center}
+    \includegraphics[width=\linewidth]%
+      {images/Overview.pdf}
+  \end{center}
+  \caption{Global overview of the project}
+  \label{fig:overview}
+\end{figure}
+
+\pagebreak
+
+\section{Main Loop}
+
+The main concept of the game loop is to enter \textit{Low-Power Mode 0}
+(\texttt{LP0}) whenever the game field is steady.
+When the tetromino drops or the user inputs a command (key-press) the
+\textit{CPU} is woken up and processes the game field.
+After sending all characters to the \textit{UART} interface the sleep mode
+is entered again (See Figure~\ref{fig:main_loop}).
+
+\begin{figure}[!h]
+  \begin{center}
+    \includegraphics[width=\linewidth]%
+      {images/MainLoop.pdf}
+  \end{center}
+  \caption{Main loop of the game}
+  \label{fig:main_loop}
+\end{figure}
+
+\section{The Game}
+
+To view the source code of the game open this \textit{PDF} file with
+\textit{WinRAR} or a compatible extractor (It is a \textit{RAR} file).
